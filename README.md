@@ -1,15 +1,18 @@
 # claude-approval-server
 
-HTTP approval server for Claude Code's `PreToolUse` hook. Blocks tool calls until approved or denied via a web UI.
+HTTP approval server for Claude Code's `PermissionRequest` hook. Blocks tool calls until approved or denied via a web UI.
 
 ## How it works
 
-1. Claude Code fires a `PreToolUse` HTTP hook to `POST /pending`
-2. The server holds the connection open, queuing the item
-3. You approve or deny via the web UI at `http://localhost:4759`
-4. The server responds to the hook, unblocking Claude
+1. Claude Code fires a `PermissionRequest` HTTP hook to `POST /pending`
+2. The server holds the connection open (up to 10 minutes), queuing the item
+3. A macOS notification appears via `alerter` — you can approve/deny directly from the notification
+4. The item also appears in the web UI at `http://localhost:4759`, where you can approve/deny or request an AI explanation of the tool call
+5. The server responds to the hook, unblocking Claude
 
-Read-only tools (`Read`, `Glob`, `Grep`, `LS`) and safe `Bash` patterns (`git status/log/diff`, `ls`, `echo`, `cat`) are auto-allowed and never reach the UI.
+You can still approve the request from Claude Code's own CLI prompt instead of the web UI or notification. When you do, the `PostToolUse` hook fires, and the server automatically clears the now-stale pending item so it doesn't linger in the queue.
+
+If no decision is made within 10 minutes, the request is auto-denied.
 
 ## Prerequisites
 
@@ -43,7 +46,7 @@ Already added to `~/.claude/settings.json`:
 
 `PermissionRequest` — Claude waits up to 10 minutes for approval. If the server is unreachable, Claude falls back to its normal approval prompt.
 
-`PostToolUse` — fires after each tool runs. If the CLI approved a request inline (bypassing the web UI), this clears the stuck pending item automatically.
+`PostToolUse` — fires after each tool runs. If you approved a request from the CLI prompt (bypassing the web UI), this clears the stale pending item from the queue automatically.
 
 ## Install as a persistent background service (launchd)
 
@@ -79,10 +82,3 @@ cp com.pwagenet.claude-approval.plist ~/Library/LaunchAgents/
 launchctl load ~/Library/LaunchAgents/com.pwagenet.claude-approval.plist
 ```
 
-## Auto-allow rules
-
-Defined in `index.ts` → `shouldAutoAllow()`. Tune this based on what actually hits the queue.
-
-Current rules:
-- Tools: `Read`, `Glob`, `Grep`, `LS`
-- `Bash` commands matching: `git (status|log|diff|show)`, `ls `, `echo `, `cat `
