@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Claude Approval Queue</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    h1 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #94a3b8;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    h1 .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #22c55e;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    #idle {
+      text-align: center;
+      color: #475569;
+      padding: 4rem 0;
+      font-size: 0.95rem;
+    }
+
+    #queue {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      max-width: 720px;
+    }
+
+    .card {
+      background: #1e2330;
+      border: 1px solid #2d3548;
+      border-radius: 10px;
+      padding: 1.25rem;
+      animation: slideIn 0.15s ease;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+
+    .badge {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      padding: 0.2em 0.55em;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+
+    .badge-bash    { background: #7c3aed22; color: #a78bfa; border: 1px solid #7c3aed44; }
+    .badge-write   { background: #dc262622; color: #f87171; border: 1px solid #dc262644; }
+    .badge-edit    { background: #d9770622; color: #fb923c; border: 1px solid #d9770644; }
+    .badge-default { background: #0ea5e922; color: #38bdf8; border: 1px solid #0ea5e944; }
+
+    .session {
+      font-size: 0.72rem;
+      color: #475569;
+      font-family: monospace;
+      margin-left: auto;
+    }
+
+    .timer {
+      font-size: 0.72rem;
+      color: #64748b;
+    }
+
+    pre {
+      background: #0f1117;
+      border: 1px solid #2d3548;
+      border-radius: 6px;
+      padding: 0.75rem 1rem;
+      font-size: 0.8rem;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+      color: #cbd5e1;
+      margin-bottom: 1rem;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .actions {
+      display: flex;
+      gap: 0.625rem;
+    }
+
+    button {
+      padding: 0.45rem 1.2rem;
+      border-radius: 6px;
+      border: none;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.1s, transform 0.1s;
+    }
+
+    button:active { transform: scale(0.97); }
+
+    .btn-allow {
+      background: #16a34a;
+      color: #fff;
+    }
+    .btn-allow:hover { background: #15803d; }
+
+    .btn-deny {
+      background: #374151;
+      color: #d1d5db;
+    }
+    .btn-deny:hover { background: #4b5563; }
+
+    .btn-allow:disabled, .btn-deny:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <h1><span class="dot"></span> Claude Approval Queue</h1>
+  <div id="idle">No pending requests</div>
+  <div id="queue" style="display:none"></div>
+
+  <script>
+    const POLL_MS = 1000
+    const AUTO_DENY_MS = 10 * 60 * 1000
+    const rendered = new Map() // id -> card element
+
+    function badgeClass(toolName) {
+      if (toolName === 'Bash')  return 'badge-bash'
+      if (toolName === 'Write') return 'badge-write'
+      if (toolName === 'Edit')  return 'badge-edit'
+      return 'badge-default'
+    }
+
+    function formatInput(item) {
+      const input = item.tool_input
+      if (!input) return JSON.stringify(item, null, 2)
+      if (item.tool_name === 'Bash') return input.command ?? ''
+      if (item.tool_name === 'Write' || item.tool_name === 'Edit') {
+        const path = input.file_path ?? input.path ?? ''
+        const content = input.content ?? input.new_string ?? ''
+        return path ? `${path}\n\n${content}` : content
+      }
+      return JSON.stringify(input, null, 2)
+    }
+
+    function makeCard(item) {
+      const card = document.createElement('div')
+      card.className = 'card'
+      card.dataset.id = item.id
+
+      const sessionId = item.session_id
+        ? String(item.session_id).slice(0, 8) + '…'
+        : '—'
+
+      const elapsed = () => {
+        const s = Math.floor((Date.now() - item.enqueuedAt) / 1000)
+        const remaining = Math.max(0, Math.floor((AUTO_DENY_MS - (Date.now() - item.enqueuedAt)) / 1000))
+        const m = Math.floor(remaining / 60)
+        const sec = String(remaining % 60).padStart(2, '0')
+        return `${m}:${sec} remaining`
+      }
+
+      card.innerHTML = `
+        <div class="card-header">
+          <span class="badge ${badgeClass(item.tool_name)}">${item.tool_name ?? 'unknown'}</span>
+          <span class="timer" data-enqueued="${item.enqueuedAt}">${elapsed()}</span>
+          <span class="session">${sessionId}</span>
+        </div>
+        <pre>${escHtml(formatInput(item))}</pre>
+        <div class="actions">
+          <button class="btn-allow">Allow</button>
+          <button class="btn-deny">Deny</button>
+        </div>
+      `
+
+      const [allowBtn, denyBtn] = card.querySelectorAll('button')
+
+      async function decide(decision) {
+        allowBtn.disabled = true
+        denyBtn.disabled = true
+        await fetch(`/decide/${item.id}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ decision }),
+        })
+        card.remove()
+        rendered.delete(item.id)
+        updateIdle()
+      }
+
+      allowBtn.addEventListener('click', () => decide('allow'))
+      denyBtn.addEventListener('click', () => decide('deny'))
+
+      // update timer every second
+      const timerEl = card.querySelector('.timer')
+      const interval = setInterval(() => {
+        if (!card.isConnected) { clearInterval(interval); return }
+        timerEl.textContent = elapsed()
+      }, 1000)
+
+      return card
+    }
+
+    function escHtml(str) {
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+    }
+
+    function updateIdle() {
+      const q = document.getElementById('queue')
+      const idle = document.getElementById('idle')
+      const hasCards = q.children.length > 0
+      idle.style.display = hasCards ? 'none' : ''
+      q.style.display = hasCards ? 'flex' : 'none'
+    }
+
+    async function poll() {
+      try {
+        const items = await fetch('/queue').then(r => r.json())
+        const q = document.getElementById('queue')
+        const currentIds = new Set(items.map(i => i.id))
+
+        // remove stale cards
+        for (const [id, card] of rendered) {
+          if (!currentIds.has(id)) {
+            card.remove()
+            rendered.delete(id)
+          }
+        }
+
+        // add new cards
+        for (const item of items) {
+          if (!rendered.has(item.id)) {
+            const card = makeCard(item)
+            q.append(card)
+            rendered.set(item.id, card)
+          }
+        }
+
+        updateIdle()
+      } catch (e) {
+        // server unreachable, ignore
+      }
+    }
+
+    poll()
+    setInterval(poll, POLL_MS)
+  </script>
+</body>
+</html>
