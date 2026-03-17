@@ -2,6 +2,12 @@ import hljs from 'highlight.js'
 import * as Diff from 'diff'
 import 'highlight.js/styles/github-dark.min.css'
 
+interface StoppedSession {
+  sessionId: string
+  stoppedAt: number
+  transcriptPath?: string
+}
+
 interface QueueItem {
   id: string
   enqueuedAt: number
@@ -15,6 +21,7 @@ interface QueueItem {
 const POLL_MS = 1000
 let AUTO_DENY_MS = 10 * 60 * 1000 // fallback until /config responds
 const rendered = new Map<string, HTMLElement>()
+const renderedStopped = new Map<string, HTMLElement>()
 
 fetch('/config')
   .then(r => r.json())
@@ -206,6 +213,42 @@ function makeCard(item: QueueItem): HTMLElement {
   return card
 }
 
+function makeStoppedCard(session: StoppedSession): HTMLElement {
+  const card = document.createElement('div')
+  card.className = 'card'
+
+  const sid = session.sessionId.slice(0, 8) + '…'
+  const when = new Date(session.stoppedAt).toLocaleTimeString()
+
+  card.innerHTML = `
+    <div class="card-header">
+      <span class="badge badge-stopped">Finished</span>
+      <span class="session">${sid}</span>
+    </div>
+    <div class="stopped-time">${when}</div>
+    <div class="actions">
+      <button class="btn-dismiss">Dismiss</button>
+    </div>
+  `
+
+  card.querySelector('.btn-dismiss')!.addEventListener('click', async () => {
+    await fetch(`/stopped/${session.sessionId}`, { method: 'DELETE' })
+    card.remove()
+    renderedStopped.delete(session.sessionId)
+    updateStoppedIdle()
+  })
+
+  return card
+}
+
+function updateStoppedIdle() {
+  const list = document.getElementById('stopped-list')!
+  const idle = document.getElementById('stopped-idle')!
+  const hasCards = list.children.length > 0
+  idle.style.display = hasCards ? 'none' : ''
+  list.style.display = hasCards ? 'flex' : 'none'
+}
+
 function updateIdle() {
   const q = document.getElementById('queue')!
   const idle = document.getElementById('idle')!
@@ -241,5 +284,34 @@ async function poll() {
   }
 }
 
+async function pollStopped() {
+  try {
+    const sessions = await fetch('/stopped').then(r => r.json()) as StoppedSession[]
+    const list = document.getElementById('stopped-list')!
+    const currentIds = new Set(sessions.map(s => s.sessionId))
+
+    for (const [id, card] of renderedStopped) {
+      if (!currentIds.has(id)) {
+        card.remove()
+        renderedStopped.delete(id)
+      }
+    }
+
+    for (const session of sessions) {
+      if (!renderedStopped.has(session.sessionId)) {
+        const card = makeStoppedCard(session)
+        list.append(card)
+        renderedStopped.set(session.sessionId, card)
+      }
+    }
+
+    updateStoppedIdle()
+  } catch {
+    // server unreachable, ignore
+  }
+}
+
 poll()
 setInterval(poll, POLL_MS)
+pollStopped()
+setInterval(pollStopped, POLL_MS)

@@ -12,7 +12,14 @@ interface PendingEntry {
   explaining?: boolean
 }
 
+interface StoppedSession {
+  sessionId: string
+  stoppedAt: number
+  transcriptPath?: string
+}
+
 const pending = new Map<string, PendingEntry>()
+const stoppedSessions = new Map<string, StoppedSession>()
 
 function logRemoval(id: string, reason: string, entry: PendingEntry) {
   const tool = entry.payload.tool_name as string ?? 'unknown'
@@ -180,7 +187,35 @@ Bun.serve({
 
     '/health': {
       GET() {
-        return Response.json({ ok: true, pending: pending.size })
+        return Response.json({ ok: true, pending: pending.size, stopped: stoppedSessions.size })
+      },
+    },
+
+    '/stop': {
+      async POST(req) {
+        const payload = (await req.json()) as Record<string, unknown>
+        const sessionId = payload.session_id as string
+        const transcriptPath = payload.transcript_path as string | undefined
+        stoppedSessions.set(sessionId, { sessionId, stoppedAt: Date.now(), transcriptPath })
+        console.log(`[stop] session=${sessionId}`)
+        Bun.spawn(['alerter', '--title', 'Claude session finished',
+          '--message', sessionId.slice(0, 8), '--timeout', '5'])
+        return Response.json({ ok: true })
+      },
+    },
+
+    '/stopped': {
+      GET() {
+        return Response.json([...stoppedSessions.values()])
+      },
+    },
+
+    '/stopped/:id': {
+      DELETE(req) {
+        const deleted = stoppedSessions.delete(req.params.id)
+        return deleted
+          ? Response.json({ ok: true })
+          : Response.json({ error: 'Not found' }, { status: 404 })
       },
     },
 
