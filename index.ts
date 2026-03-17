@@ -205,11 +205,11 @@ Bun.serve({
         if (!entry) {
           return Response.json({ error: 'Not found or already decided' }, { status: 404 })
         }
-        const body = (await req.json()) as { decision: string }
+        const body = (await req.json()) as { decision: string; message?: string }
         logRemoval(id, `web-ui:${body.decision}`, entry)
         pending.delete(id)
         Bun.spawn(['alerter', '--remove', id])
-        entry.resolve(body.decision)
+        entry.resolve(body.decision === 'allow' ? 'allow' : (body.message ?? body.decision))
         return Response.json({ ok: true })
       },
     },
@@ -337,6 +337,19 @@ Bun.serve({
         const decisionPromise = new Promise<string>((resolve) => {
           resolveDecision = resolve
         })
+
+        // Auto-resolve any lingering AskUserQuestion entries for this session
+        const incomingSession = payload.session_id as string | undefined
+        if (incomingSession) {
+          for (const [pendingId, entry] of pending) {
+            if (entry.payload.session_id === incomingSession && entry.payload.tool_name === 'AskUserQuestion') {
+              logRemoval(pendingId, 'new-session-activity', entry)
+              pending.delete(pendingId)
+              Bun.spawn(['alerter', '--remove', pendingId])
+              entry.resolve('allow')
+            }
+          }
+        }
 
         pending.set(id, { resolve: resolveDecision, payload, enqueuedAt: Date.now() })
         const toolName = (payload.tool_name as string) ?? 'unknown'

@@ -118,7 +118,100 @@ function shortCwd(cwd: string): string {
   return parts.length <= 2 ? cwd : '…/' + parts.slice(-2).join('/')
 }
 
+interface AskOption { label: string; description?: string }
+interface AskQuestion { question: string; header: string; options: AskOption[]; multiSelect: boolean }
+
+function makeAskUserQuestionCard(item: QueueItem): HTMLElement {
+  const card = document.createElement('div')
+  card.className = 'card'
+  card.dataset.id = item.id
+
+  const questions = ((item.tool_input as Record<string, unknown>)?.questions ?? []) as AskQuestion[]
+  const sessionId = item.session_id ? String(item.session_id).slice(0, 8) + '…' : '—'
+
+  const header = document.createElement('div')
+  header.className = 'card-header'
+  header.innerHTML = `<span class="badge badge-question">Question</span><span class="session">${sessionId}</span>`
+  card.appendChild(header)
+
+  const body = document.createElement('div')
+  body.className = 'ask-body'
+  card.appendChild(body)
+
+  for (const q of questions) {
+    const section = document.createElement('div')
+    section.className = 'ask-section'
+
+    const qHeader = document.createElement('div')
+    qHeader.className = 'ask-section-header'
+    qHeader.textContent = q.header
+
+    const qText = document.createElement('div')
+    qText.className = 'ask-section-question'
+    qText.textContent = q.question
+
+    section.appendChild(qHeader)
+    section.appendChild(qText)
+
+    for (const opt of q.options) {
+      const row = document.createElement('div')
+      row.className = 'ask-option'
+      const labelEl = document.createElement('span')
+      labelEl.className = 'ask-option-label'
+      labelEl.textContent = opt.label
+      row.appendChild(labelEl)
+      if (opt.description) {
+        const desc = document.createElement('span')
+        desc.className = 'ask-option-desc'
+        desc.textContent = opt.description
+        row.appendChild(desc)
+      }
+      section.appendChild(row)
+    }
+
+    body.appendChild(section)
+  }
+
+  async function dismiss() {
+    focusBtn.disabled = true
+    dismissBtn.disabled = true
+    try {
+      await fetch(`/decide/${item.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ decision: 'allow' }),
+      })
+      card.remove()
+      rendered.delete(item.id)
+      updateIdle()
+    } catch {
+      focusBtn.disabled = false
+      dismissBtn.disabled = false
+    }
+  }
+
+  const actions = document.createElement('div')
+  actions.className = 'actions'
+
+  const focusBtn = document.createElement('button')
+  focusBtn.className = 'btn-allow'
+  focusBtn.textContent = 'Focus'
+  focusBtn.addEventListener('click', () => fetch(`/focus/${item.id}`, { method: 'POST' }))
+
+  const dismissBtn = document.createElement('button')
+  dismissBtn.className = 'btn-deny'
+  dismissBtn.textContent = 'Dismiss'
+  dismissBtn.addEventListener('click', () => dismiss())
+
+  actions.appendChild(focusBtn)
+  actions.appendChild(dismissBtn)
+  card.appendChild(actions)
+
+  return card
+}
+
 function makeCard(item: QueueItem): HTMLElement {
+  if (item.tool_name === 'AskUserQuestion') return makeAskUserQuestionCard(item)
   const card = document.createElement('div')
   card.className = 'card'
   card.dataset.id = item.id
