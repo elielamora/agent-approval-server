@@ -11,7 +11,7 @@ import {
   shortCwd,
   langFromPath,
   getTerminalIcon,
-  splitPipedCommand,
+  splitCommand,
   parseHeredoc,
   parseInterpreterCall,
 } from "./ui-utils";
@@ -210,7 +210,7 @@ function makeCodeBlock(item: QueueItem): { pre: HTMLElement; filePath: string } 
     const rawCmd = asString(item.tool_input?.command);
     const heredoc = parseHeredoc(rawCmd);
     const interp = !heredoc ? parseInterpreterCall(rawCmd) : null;
-    const piped = !heredoc && !interp ? splitPipedCommand(rawCmd) : null;
+    const split = !heredoc && !interp ? splitCommand(rawCmd) : null;
 
     if (heredoc ?? interp) {
       const info = (heredoc ?? interp)!;
@@ -218,8 +218,10 @@ function makeCodeBlock(item: QueueItem): { pre: HTMLElement; filePath: string } 
     }
 
     code.className = "language-bash";
-    code.textContent = piped
-      ? piped.map((seg, i) => (i === 0 ? seg : `  | ${seg}`)).join(" \\\n")
+    code.textContent = split
+      ? split.segments
+          .map((seg, i) => (i === 0 ? seg : `  ${split.seps[i - 1]} ${seg}`))
+          .join(" \\\n")
       : rawCmd;
   } else if (item.tool_name === "Write") {
     filePath = asString(item.tool_input?.file_path ?? item.tool_input?.path);

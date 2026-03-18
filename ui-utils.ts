@@ -68,12 +68,16 @@ export interface EmbeddedCode {
   lang: string;
 }
 
+export type CommandSplit = { segments: string[]; seps: ("|" | "&&")[] };
+
 /**
- * Split a bash command on top-level pipes only (not || and not pipes inside
- * quotes or $(...) subshells). Returns null when there is only one segment.
+ * Split a bash command on top-level `|` and `&&` operators (not `||`, not `&`,
+ * and not operators inside quotes or $(...) subshells).
+ * Returns null when there is only one segment.
  */
-export function splitPipedCommand(cmd: string): string[] | null {
+export function splitCommand(cmd: string): CommandSplit | null {
   const segments: string[] = [];
+  const seps: ("|" | "&&")[] = [];
   let current = "";
   let depth = 0;
   let inSingle = false;
@@ -113,23 +117,41 @@ export function splitPipedCommand(cmd: string): string[] | null {
     } else if (ch === ")" && depth > 0) {
       depth--;
       current += ch;
+    } else if (ch === "&" && next === "&" && depth === 0) {
+      segments.push(current.trim());
+      seps.push("&&");
+      current = "";
+      i++; // skip second &
     } else if (ch === "|" && depth === 0) {
       if (next === "|") {
         // || operator — do not split
         current += ch + next;
         i++;
       } else {
-        segments.push(current);
+        segments.push(current.trim());
+        seps.push("|");
         current = "";
       }
     } else {
       current += ch;
     }
   }
-  segments.push(current);
+  segments.push(current.trim());
 
-  const trimmed = segments.map((s) => s.trim()).filter((s) => s.length > 0);
-  return trimmed.length > 1 ? trimmed : null;
+  const filtered = segments.filter((s) => s.length > 0);
+  return filtered.length > 1 ? { segments: filtered, seps } : null;
+}
+
+/**
+ * Split a bash command on top-level pipes only (not || and not pipes inside
+ * quotes or $(...) subshells). Returns null when there is only one segment.
+ */
+export function splitPipedCommand(cmd: string): string[] | null {
+  const result = splitCommand(cmd);
+  if (!result) return null;
+  // Only return if all separators are pipes
+  if (result.seps.every((s) => s === "|")) return result.segments;
+  return null;
 }
 
 /**

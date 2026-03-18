@@ -6,6 +6,7 @@ import {
   shortCwd,
   langFromPath,
   splitPipedCommand,
+  splitCommand,
   parseHeredoc,
   parseInterpreterCall,
   langFromInterpreter,
@@ -134,6 +135,48 @@ describe("splitPipedCommand", () => {
   });
   test("top-level pipe after subshell is split", () => {
     expect(splitPipedCommand("echo $(cat file) | grep x")).toEqual(["echo $(cat file)", "grep x"]);
+  });
+});
+
+describe("splitCommand", () => {
+  test("pipe only", () => {
+    expect(splitCommand("cat file | grep x")).toEqual({
+      segments: ["cat file", "grep x"],
+      seps: ["|"],
+    });
+  });
+  test("&& only", () => {
+    expect(splitCommand("cd /tmp && ls")).toEqual({
+      segments: ["cd /tmp", "ls"],
+      seps: ["&&"],
+    });
+  });
+  test("mixed && and pipe", () => {
+    expect(splitCommand("cd /path && git show origin/main | head -5")).toEqual({
+      segments: ["cd /path", "git show origin/main", "head -5"],
+      seps: ["&&", "|"],
+    });
+  });
+  test("single command returns null", () => {
+    expect(splitCommand("ls")).toBeNull();
+  });
+  test("|| not split", () => {
+    expect(splitCommand("cmd1 || cmd2")).toBeNull();
+  });
+  test("& alone not split", () => {
+    expect(splitCommand("sleep 10 & echo done")).toBeNull();
+  });
+  test("&& inside quotes not split", () => {
+    expect(splitCommand('echo "a && b"')).toBeNull();
+  });
+  test("&& inside subshell not split", () => {
+    expect(splitCommand("echo $(cd /tmp && ls)")).toBeNull();
+  });
+  test("top-level && after subshell is split", () => {
+    expect(splitCommand("echo $(cd /tmp) && ls")).toEqual({
+      segments: ["echo $(cd /tmp)", "ls"],
+      seps: ["&&"],
+    });
   });
 });
 
