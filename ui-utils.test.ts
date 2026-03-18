@@ -24,6 +24,18 @@ describe("parseMcpToolName", () => {
       tool: "search_ember_docs",
     });
   });
+  test("lowercase hook payload format", () => {
+    expect(parseMcpToolName("mcp__unblocked__unblocked_context_engine")).toEqual({
+      server: "unblocked",
+      tool: "unblocked_context_engine",
+    });
+  });
+  test("lowercase ember tool", () => {
+    expect(parseMcpToolName("mcp__ember__search_ember_docs")).toEqual({
+      server: "ember",
+      tool: "search_ember_docs",
+    });
+  });
   test("returns null for non-MCP tool", () => {
     expect(parseMcpToolName("Bash")).toBeNull();
   });
@@ -33,10 +45,21 @@ describe("parseMcpToolName", () => {
 });
 
 describe("formatToolName", () => {
-  test("MCP tool formatted as server / tool", () => {
+  test("MCP tool strips redundant server prefix and replaces underscores", () => {
     expect(formatToolName("MCP__UNBLOCKED__UNBLOCKED_CONTEXT_ENGINE")).toBe(
-      "unblocked / unblocked_context_engine",
+      "unblocked / context engine",
     );
+  });
+  test("lowercase hook payload format", () => {
+    expect(formatToolName("mcp__unblocked__unblocked_context_engine")).toBe(
+      "unblocked / context engine",
+    );
+  });
+  test("MCP tool without redundant prefix", () => {
+    expect(formatToolName("mcp__unblocked__data_retrieval")).toBe("unblocked / data retrieval");
+  });
+  test("ember MCP tool strips server prefix", () => {
+    expect(formatToolName("mcp__ember__search_ember_docs")).toBe("ember / search ember docs");
   });
   test("regular tool unchanged", () => {
     expect(formatToolName("Bash")).toBe("Bash");
@@ -52,8 +75,10 @@ describe("badgeClass", () => {
   test("Edit", () => expect(badgeClass("Edit")).toBe("badge-edit"));
   test("ExitPlanMode", () => expect(badgeClass("ExitPlanMode")).toBe("badge-plan"));
   test("EnterPlanMode", () => expect(badgeClass("EnterPlanMode")).toBe("badge-plan"));
-  test("MCP tool", () =>
+  test("MCP tool uppercase", () =>
     expect(badgeClass("MCP__UNBLOCKED__UNBLOCKED_CONTEXT_ENGINE")).toBe("badge-mcp"));
+  test("MCP tool lowercase", () =>
+    expect(badgeClass("mcp__unblocked__unblocked_context_engine")).toBe("badge-mcp"));
   test("unknown defaults", () => expect(badgeClass("Glob")).toBe("badge-default"));
   test("undefined defaults", () => expect(badgeClass(undefined)).toBe("badge-default"));
 });

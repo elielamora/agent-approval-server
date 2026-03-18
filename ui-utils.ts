@@ -4,7 +4,7 @@ export function asString(val: unknown, fallback = ""): string {
 
 export function parseMcpToolName(name: string): { server: string; tool: string } | null {
   const parts = name.split("__");
-  if (parts.length < 3 || parts[0] !== "MCP") return null;
+  if (parts.length < 3 || parts[0].toUpperCase() !== "MCP") return null;
   return {
     server: parts[1].toLowerCase(),
     tool: parts.slice(2).join("__").toLowerCase(),
@@ -14,7 +14,12 @@ export function parseMcpToolName(name: string): { server: string; tool: string }
 export function formatToolName(name: string | undefined): string {
   if (!name) return "unknown";
   const mcp = parseMcpToolName(name);
-  if (mcp) return `${mcp.server} / ${mcp.tool}`;
+  if (mcp) {
+    const toolStripped = mcp.tool.startsWith(mcp.server + "_")
+      ? mcp.tool.slice(mcp.server.length + 1)
+      : mcp.tool;
+    return `${mcp.server} / ${toolStripped.replace(/_/g, " ")}`;
+  }
   return name;
 }
 
