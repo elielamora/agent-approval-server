@@ -561,9 +561,14 @@ function updateIdle() {
 }
 
 async function poll() {
-  try {
-    // SAFETY: /queue always returns QueueItem[]
-    const items = (await fetch("/queue").then((r) => r.json())) as QueueItem[];
+  // SAFETY: /queue returns QueueItem[], /idle returns IdleSession[]
+  const [itemsRes, sessionsRes] = await Promise.allSettled([
+    fetch("/queue").then((r) => r.json()) as Promise<QueueItem[]>,
+    fetch("/idle").then((r) => r.json()) as Promise<IdleSession[]>,
+  ]);
+
+  if (itemsRes.status === "fulfilled") {
+    const items = itemsRes.value;
     const q = document.getElementById("queue")!;
     const currentIds = new Set(items.map((i) => i.id));
 
@@ -584,17 +589,10 @@ async function poll() {
         });
       }
     }
-
-    updateIdle();
-  } catch {
-    // server unreachable, ignore
   }
-}
 
-async function pollIdle() {
-  try {
-    // SAFETY: /idle always returns IdleSession[]
-    const sessions = (await fetch("/idle").then((r) => r.json())) as IdleSession[];
+  if (sessionsRes.status === "fulfilled") {
+    const sessions = sessionsRes.value;
     const list = document.getElementById("idle-list")!;
     const currentIds = new Set(sessions.map((s) => s.sessionId));
 
@@ -615,15 +613,13 @@ async function pollIdle() {
     }
 
     updateIdleEmptyState();
-  } catch {
-    // server unreachable, ignore
   }
+
+  updateIdle();
 }
 
 void poll();
 setInterval(poll, POLL_MS);
-void pollIdle();
-setInterval(pollIdle, POLL_MS);
 
 // Settings modal
 const settingsBtn = document.getElementById("settings-btn")!;
