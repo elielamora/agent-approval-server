@@ -1,8 +1,31 @@
 ---
 description: Use Bun instead of Node.js, npm, pnpm, or vite.
-globs: "*.ts, *.tsx, *.html, *.css, *.js, *.jsx, package.json"
-alwaysApply: false
+alwaysApply: true
 ---
+
+## Project overview
+
+This is a Claude Code approval server. It intercepts Claude's `PermissionRequest` hook, holds the connection open (up to 10 min), and lets the user approve/deny via native macOS notifications (`alerter`) or a web UI at `http://localhost:4759`.
+
+**Files:**
+- `index.ts` — Bun HTTP server (all state is in-memory; no database)
+- `ui.ts` — Frontend code bundled via `ui.html`
+- `hook-shim.sh` — Bash shim invoked by Claude Code hooks; enriches payload with terminal env vars and forwards to the server via `curl`
+
+**External runtime dependencies** (not in package.json):
+- `alerter` (via `brew install vjeantet/tap/alerter`) — macOS notification with Allow/Deny actions
+- `jq`, `curl` — used in `hook-shim.sh`
+- `osascript` — used for terminal focus (AppleScript)
+- `claude` CLI — `/explain/:id` spawns `claude -p ... --model haiku` as a subprocess
+
+**Running:**
+- Dev: `bun --hot index.ts`
+- Production: launchd via `com.pwagenet.claude-approval.plist`; logs go to `/tmp/claude-approval.log`
+
+**Key invariants:**
+- `AUTO_DENY_TIMEOUT_MS` (10 min) must match the `timeout: 600` in Claude's hook config
+- The `PostToolUse` hook fires after the user approves from the CLI, allowing stale pending items to self-clear via `/post-tool-use`
+- `AskUserQuestion` cards auto-clear when the next tool call from the same session arrives
 
 Default to using Bun instead of Node.js.
 
