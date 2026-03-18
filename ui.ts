@@ -596,7 +596,7 @@ async function poll() {
         const card = makeCard(item);
         q.append(card);
         rendered.set(item.id, card);
-        void notify(`Approval: ${item.tool_name ?? "unknown"}`, shortCwd(item.cwd ?? ""), {
+        notify(`Approval: ${item.tool_name ?? "unknown"}`, shortCwd(item.cwd ?? ""), {
           requireInteraction: appConfig.notifRequireInteraction,
         });
       }
@@ -620,7 +620,7 @@ async function poll() {
         const card = makeIdleCard(session);
         list.append(card);
         renderedIdle.set(session.sessionId, card);
-        void notify("Claude session idle", shortCwd(session.cwd ?? ""));
+        notify("Claude session idle", shortCwd(session.cwd ?? ""));
       }
     }
 
