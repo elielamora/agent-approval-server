@@ -133,6 +133,14 @@ export function createRoutes(
         const transcriptPath = payload.transcript_path as string | undefined
         stoppedSessions.set(sessionId, { sessionId, stoppedAt: Date.now(), transcriptPath, payload })
         console.log(`[stop] session=${sessionId}`)
+        // Clear any pending entries for this session (e.g. last tool was CLI-denied)
+        for (const [pendingId, entry] of pending) {
+          if (entry.payload.session_id === sessionId) {
+            logRemoval(pendingId, 'session-stopped', entry)
+            pending.delete(pendingId)
+            entry.resolve('deny')
+          }
+        }
         return Response.json({ ok: true })
       },
     },
@@ -206,14 +214,15 @@ export function createRoutes(
           resolveDecision = resolve
         })
 
-        // Auto-resolve any lingering AskUserQuestion entries for this session
+        // Auto-resolve any lingering entries for this session (e.g. previous tool was CLI-denied)
         const incomingSession = payload.session_id as string | undefined
         if (incomingSession) {
           for (const [pendingId, entry] of pending) {
-            if (entry.payload.session_id === incomingSession && entry.payload.tool_name === 'AskUserQuestion') {
-              logRemoval(pendingId, 'new-session-activity', entry)
+            if (entry.payload.session_id === incomingSession) {
+              const isAskQuestion = entry.payload.tool_name === 'AskUserQuestion'
+              logRemoval(pendingId, isAskQuestion ? 'new-session-activity' : 'cli-denied', entry)
               pending.delete(pendingId)
-              entry.resolve('allow')
+              entry.resolve(isAskQuestion ? 'allow' : 'deny')
             }
           }
         }

@@ -139,6 +139,43 @@ describe('POST /pending + POST /decide/:id', () => {
     await bashRes
   })
 
+  test('auto-clears stale non-AskUserQuestion entries on new session activity', async () => {
+    // Enqueue a Bash entry (simulating a CLI-denied tool that left a stale entry)
+    const bashRes = fetch(`http://localhost:${server.port}/pending`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tool_name: 'Bash', tool_input: { command: 'rm -rf /' }, session_id: 'sessA' }),
+    })
+
+    await Bun.sleep(10)
+    expect(pending.size).toBe(1)
+
+    // Next tool from same session clears the stale Bash entry and adds new one
+    const writeRes = fetch(`http://localhost:${server.port}/pending`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tool_name: 'Write', tool_input: { path: '/tmp/x' }, session_id: 'sessA' }),
+    })
+
+    await Bun.sleep(10)
+    expect(pending.size).toBe(1)
+    const [[, entry]] = [...pending.entries()]
+    expect(entry.payload.tool_name).toBe('Write')
+
+    // Stale Bash entry was resolved with deny
+    const bashBody = await bashRes.then(r => r.json()) as { hookSpecificOutput: { decision: { behavior: string } } }
+    expect(bashBody.hookSpecificOutput.decision.behavior).toBe('deny')
+
+    // Resolve the Write entry to clean up
+    const [[writeId]] = [...pending.entries()]
+    await fetch(`http://localhost:${server.port}/decide/${writeId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ decision: 'allow' }),
+    })
+    await writeRes
+  })
+
   test('404 on unknown id', async () => {
     const res = await fetch(`http://localhost:${server.port}/decide/no-such-id`, {
       method: 'POST',
@@ -146,6 +183,69 @@ describe('POST /pending + POST /decide/:id', () => {
       body: JSON.stringify({ decision: 'allow' }),
     })
     expect(res.status).toBe(404)
+  })
+})
+
+describe('POST /stop', () => {
+  let server: ReturnType<typeof Bun.serve>
+  let pending: Map<string, PendingEntry>
+  let stopped: Map<string, StoppedSession>
+
+  beforeEach(() => {
+    ({ server, pending, stopped } = makeServer())
+  })
+  afterEach(() => server.stop(true))
+
+  test('clears pending entries for the stopped session', async () => {
+    const pendingRes = fetch(`http://localhost:${server.port}/pending`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tool_name: 'Bash', tool_input: { command: 'echo hi' }, session_id: 'sessStop' }),
+    })
+
+    await Bun.sleep(10)
+    expect(pending.size).toBe(1)
+
+    await fetch(`http://localhost:${server.port}/stop`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session_id: 'sessStop' }),
+    })
+
+    expect(pending.size).toBe(0)
+    expect(stopped.has('sessStop')).toBe(true)
+
+    // Stale pending entry was resolved with deny
+    const body = await pendingRes.then(r => r.json()) as { hookSpecificOutput: { decision: { behavior: string } } }
+    expect(body.hookSpecificOutput.decision.behavior).toBe('deny')
+  })
+
+  test('does not clear pending entries from other sessions', async () => {
+    const pendingRes = fetch(`http://localhost:${server.port}/pending`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tool_name: 'Bash', tool_input: { command: 'echo hi' }, session_id: 'sessOther' }),
+    })
+
+    await Bun.sleep(10)
+    expect(pending.size).toBe(1)
+
+    await fetch(`http://localhost:${server.port}/stop`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session_id: 'sessDifferent' }),
+    })
+
+    expect(pending.size).toBe(1)
+
+    // Resolve to clean up
+    const [[id]] = [...pending.entries()]
+    await fetch(`http://localhost:${server.port}/decide/${id}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ decision: 'allow' }),
+    })
+    await pendingRes
   })
 })
 
