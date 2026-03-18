@@ -1,5 +1,7 @@
 import { randomUUID } from "crypto";
 import type { PendingEntry, IdleSession } from "./types";
+import { saveSettings, type Settings } from "./settings";
+import { AUTO_DENY_TIMEOUT_MS } from "./state";
 import {
   asString,
   stableStringify,
@@ -25,12 +27,22 @@ function focusTerminal(entry: PendingEntry) {
 export function createRoutes(
   pending: Map<string, PendingEntry>,
   idleSessions: Map<string, IdleSession>,
-  autoDenyMs: number,
+  settings: Settings,
 ) {
   return {
     "/config": {
       GET() {
-        return Response.json({ autoDenyMs });
+        return Response.json(settings);
+      },
+      async PATCH(req: Request) {
+        // SAFETY: /config PATCH body is a user-supplied Partial<Settings> from the settings UI
+        const body = (await req.json()) as Partial<Settings>;
+        if (typeof body.theme === "string" && (body.theme === "dark" || body.theme === "light"))
+          settings.theme = body.theme;
+        if (typeof body.notifRequireInteraction === "boolean")
+          settings.notifRequireInteraction = body.notifRequireInteraction;
+        await saveSettings();
+        return Response.json(settings);
       },
     },
 
@@ -279,7 +291,7 @@ export function createRoutes(
             pending.delete(id);
             resolveDecision("deny");
           }
-        }, autoDenyMs);
+        }, AUTO_DENY_TIMEOUT_MS);
 
         const encoder = new TextEncoder();
         let clientGone = false;

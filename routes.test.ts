@@ -1,15 +1,19 @@
 import { test, expect, describe, beforeEach, afterEach } from "bun:test";
 import { createRoutes } from "./routes";
+import type { Settings } from "./settings";
 import type { PendingEntry, IdleSession } from "./types";
 
-const AUTO_DENY_MS = 600_000;
+const testSettings: Settings = {
+  theme: "dark",
+  notifRequireInteraction: true,
+};
 
 function makeServer() {
   const pending = new Map<string, PendingEntry>();
   const idle = new Map<string, IdleSession>();
   const server = Bun.serve({
     port: 0,
-    routes: createRoutes(pending, idle, AUTO_DENY_MS),
+    routes: createRoutes(pending, idle, testSettings),
   });
   return { server, pending, idle };
 }

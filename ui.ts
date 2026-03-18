@@ -15,7 +15,11 @@ import {
 } from "./ui-utils";
 
 const POLL_MS = 1000;
-let AUTO_DENY_MS = 10 * 60 * 1000; // fallback until /config responds
+const AUTO_DENY_MS = 10 * 60 * 1000;
+let appConfig = {
+  notifRequireInteraction: true,
+  theme: "dark" as "dark" | "light",
+};
 const rendered = new Map<string, HTMLElement>();
 const renderedIdle = new Map<string, HTMLElement>();
 
@@ -45,29 +49,24 @@ function updateNotifBanner() {
 }
 updateNotifBanner();
 
-let swReg: ServiceWorkerRegistration | null = null;
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker
-    .register("/sw.js")
-    .then((reg) => {
-      swReg = reg;
-    })
-    .catch(() => {});
+function notify(title: string, body: string, opts: NotificationOptions = {}) {
+  if (Notification.permission !== "granted") return;
+  const n = new Notification(title, { body, ...opts });
+  n.onclick = () => {
+    window.focus();
+    n.close();
+  };
 }
 
-async function notify(title: string, body: string, opts: NotificationOptions = {}) {
-  if (Notification.permission !== "granted") return;
-  if (swReg) {
-    await swReg.showNotification(title, { body, ...opts });
-  } else {
-    new Notification(title, { body, ...opts });
-  }
+function applyTheme(theme: string) {
+  document.documentElement.dataset.theme = theme;
 }
 
 fetch("/config")
   .then((r) => r.json())
-  .then((cfg: { autoDenyMs: number }) => {
-    AUTO_DENY_MS = cfg.autoDenyMs;
+  .then((cfg: typeof appConfig) => {
+    appConfig = cfg;
+    applyTheme(cfg.theme);
   })
   .catch(() => {});
 
@@ -574,11 +573,9 @@ async function poll() {
         const card = makeCard(item);
         q.append(card);
         rendered.set(item.id, card);
-        void notify(
-          `Claude needs approval: ${item.tool_name ?? "unknown"}`,
-          shortCwd(item.cwd ?? ""),
-          { requireInteraction: true },
-        );
+        void notify(`Approval: ${item.tool_name ?? "unknown"}`, shortCwd(item.cwd ?? ""), {
+          requireInteraction: appConfig.notifRequireInteraction,
+        });
       }
     }
 
@@ -621,3 +618,48 @@ void poll();
 setInterval(poll, POLL_MS);
 void pollIdle();
 setInterval(pollIdle, POLL_MS);
+
+// Settings modal
+const settingsBtn = document.getElementById("settings-btn")!;
+const settingsModal = document.getElementById("settings-modal")!;
+const settingsClose = document.getElementById("settings-close")!;
+const settingsSave = document.getElementById("settings-save")!;
+// SAFETY: these IDs are defined in ui.html and always present as their respective input elements
+const settingTheme = document.getElementById("setting-theme") as HTMLSelectElement;
+const settingRequireInteraction = document.getElementById(
+  "setting-require-interaction",
+) as HTMLInputElement;
+
+settingsBtn.addEventListener("click", () => {
+  settingTheme.value = appConfig.theme;
+  settingRequireInteraction.checked = appConfig.notifRequireInteraction;
+  settingsModal.classList.add("open");
+});
+
+settingsClose.addEventListener("click", () => settingsModal.classList.remove("open"));
+
+settingsModal.addEventListener("click", (e) => {
+  if (e.target === e.currentTarget) settingsModal.classList.remove("open");
+});
+
+settingsSave.addEventListener("click", async () => {
+  const patch = {
+    theme: settingTheme.value as "dark" | "light",
+    notifRequireInteraction: settingRequireInteraction.checked,
+  };
+  try {
+    const res = await fetch("/config", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+    if (res.ok) {
+      // SAFETY: /config PATCH returns the updated Settings object
+      appConfig = (await res.json()) as typeof appConfig;
+      applyTheme(appConfig.theme);
+      settingsModal.classList.remove("open");
+    }
+  } catch {
+    // network error, ignore
+  }
+});
