@@ -26,6 +26,18 @@ This is a Claude Code approval server. It intercepts Claude's `PermissionRequest
 - The `PostToolUse` hook fires after the user approves from the CLI, allowing stale pending items to self-clear via `/post-tool-use`
 - `AskUserQuestion` cards auto-clear when the next tool call from the same session arrives
 
+## Documentation
+
+Keep `README.md` up to date whenever you make changes that affect:
+- How the server works or what it does
+- Setup / installation steps
+- Hook configuration
+- New features or removed features
+
+## Claude Code Web
+
+When running in Claude Code Web (`$CLAUDE_CODE_REMOTE=true`), take screenshots of the UI at `http://localhost:4759` and include them in pull request descriptions. Start the server with `bun index.ts &` before taking screenshots, then kill it after. Use the screenshot tool to capture the UI and embed the images in the PR body.
+
 Default to using Bun instead of Node.js.
 
 - Use `bun <file>` instead of `node <file>` or `ts-node <file>`
