@@ -79,6 +79,20 @@ export function createRoutes(
       },
     },
 
+    "/dismiss/:id": {
+      POST(req: Request & { params: { id: string } }) {
+        const id = req.params.id;
+        const entry = pending.get(id);
+        if (!entry) {
+          return Response.json({ error: "Not found or already decided" }, { status: 404 });
+        }
+        logRemoval(id, "web-ui:dismiss", entry);
+        pending.delete(id);
+        entry.resolve("dismiss");
+        return Response.json({ ok: true });
+      },
+    },
+
     "/focus/:id": {
       POST(req: Request & { params: { id: string } }) {
         const entry = pending.get(req.params.id);
@@ -339,12 +353,19 @@ export function createRoutes(
             void decisionPromise.then((decision) => {
               if (clientGone) return;
               try {
-                controller.enqueue(
-                  encoder.encode(
-                    JSON.stringify(decision === "allow" ? allowResponse() : denyResponse()),
-                  ),
-                );
-                controller.close();
+                if (decision === "dismiss") {
+                  // Close without writing a body so the hook shim gets an empty response,
+                  // causing curl to exit non-zero and Claude Code to fall through to its
+                  // default CLI permission prompts.
+                  controller.close();
+                } else {
+                  controller.enqueue(
+                    encoder.encode(
+                      JSON.stringify(decision === "allow" ? allowResponse() : denyResponse()),
+                    ),
+                  );
+                  controller.close();
+                }
               } catch {}
             });
           },

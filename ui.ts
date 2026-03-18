@@ -400,6 +400,7 @@ function makeCard(item: QueueItem): HTMLElement {
       ${cwdShort ? `<span class="cwd" title="${cwdFull}">${cwdShort}</span>` : ""}
       <span class="timer" data-enqueued="${item.enqueuedAt}">${elapsed()}</span>
       <span class="session">${sessionId}</span>
+      <button class="btn-x" aria-label="Dismiss">✕</button>
     </div>
     <div class="code-block-wrapper"></div>
     <div class="explanation" style="display:none"></div>
@@ -484,6 +485,14 @@ function makeCard(item: QueueItem): HTMLElement {
   focusBtn.innerHTML = getTerminalIcon(ti) + "Focus";
   focusBtn.addEventListener("click", async () => {
     await fetch(`/focus/${item.id}`, { method: "POST" });
+  });
+
+  const xBtn = card.querySelector<HTMLButtonElement>(".btn-x")!;
+  xBtn.addEventListener("click", async () => {
+    await fetch(`/dismiss/${item.id}`, { method: "POST" });
+    card.remove();
+    rendered.delete(item.id);
+    updateIdle();
   });
 
   const timerEl = card.querySelector<HTMLElement>(".timer")!;
