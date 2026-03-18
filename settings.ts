@@ -23,6 +23,12 @@ function loadSettings(): Settings {
   }
 }
 
-export async function saveSettings(): Promise<void> {
-  await Bun.write(SETTINGS_FILE, JSON.stringify(settings, null, 2));
+// Serialize writes so concurrent PATCH /config calls don't interleave on disk.
+let saveChain: Promise<void> = Promise.resolve();
+
+export function saveSettings(): Promise<void> {
+  saveChain = saveChain.then(() =>
+    Bun.write(SETTINGS_FILE, JSON.stringify(settings, null, 2)),
+  );
+  return saveChain;
 }
