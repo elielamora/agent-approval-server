@@ -417,7 +417,19 @@ function makeCard(item: QueueItem): HTMLElement {
   if (filePath) {
     const label = document.createElement("div");
     label.className = "file-path";
-    label.textContent = filePath;
+    const slashIdx = filePath.lastIndexOf("/");
+    const dir = slashIdx >= 0 ? filePath.slice(0, slashIdx + 1) : "";
+    const base = slashIdx >= 0 ? filePath.slice(slashIdx + 1) : filePath;
+    if (dir) {
+      const dirSpan = document.createElement("span");
+      dirSpan.className = "file-path-dir";
+      dirSpan.textContent = dir;
+      label.appendChild(dirSpan);
+    }
+    const baseSpan = document.createElement("span");
+    baseSpan.className = "file-path-base";
+    baseSpan.textContent = base;
+    label.appendChild(baseSpan);
     wrapper.appendChild(label);
   }
   wrapper.appendChild(pre);
