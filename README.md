@@ -7,8 +7,8 @@ Approval server for Claude Code hooks. Blocks tool calls until approved or denie
 **Approvals:**
 1. Claude Code fires a `PermissionRequest` hook — a shell shim enriches the payload with terminal environment info and forwards it to `POST /pending`
 2. The server holds the connection open (up to 10 minutes), queuing the item
-3. A macOS notification appears via `alerter` — you can approve/deny directly from the notification
-4. The item also appears in the web UI at `http://localhost:4759`, where you can approve/deny, request an AI explanation, or focus the originating terminal window
+3. A browser notification appears — clicking it focuses the web UI tab
+4. The item appears in the web UI at `http://localhost:4759`, where you can approve/deny, request an AI explanation, or focus the originating terminal window
 5. The server responds to the hook, unblocking Claude
 
 You can still approve from Claude Code's own CLI prompt. When you do, the `PostToolUse` hook fires and the server automatically clears the stale pending item.
@@ -34,7 +34,7 @@ When a Claude session ends, the `Stop` hook fires. The server records the finish
 ## Prerequisites
 
 ```sh
-brew install vjeantet/tap/alerter jq
+brew install jq
 ```
 
 ## Run (dev)

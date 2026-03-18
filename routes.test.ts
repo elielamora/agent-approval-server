@@ -1,0 +1,241 @@
+import { test, expect, describe, beforeEach, afterEach } from 'bun:test'
+import { createRoutes } from './routes'
+import type { PendingEntry, StoppedSession } from './types'
+
+const AUTO_DENY_MS = 600_000
+
+function makeServer() {
+  const pending = new Map<string, PendingEntry>()
+  const stopped = new Map<string, StoppedSession>()
+  const server = Bun.serve({
+    port: 0,
+    routes: createRoutes(pending, stopped, AUTO_DENY_MS),
+  })
+  return { server, pending, stopped }
+}
+
+describe('GET /health', () => {
+  let server: ReturnType<typeof Bun.serve>
+
+  beforeEach(() => {
+    ({ server } = makeServer())
+  })
+  afterEach(() => server.stop(true))
+
+  test('returns ok with counts', async () => {
+    const res = await fetch(`http://localhost:${server.port}/health`)
+    const body = await res.json() as { ok: boolean; pending: number; stopped: number }
+    expect(res.ok).toBe(true)
+    expect(body.ok).toBe(true)
+    expect(body.pending).toBe(0)
+    expect(body.stopped).toBe(0)
+  })
+})
+
+describe('GET /queue', () => {
+  let server: ReturnType<typeof Bun.serve>
+
+  beforeEach(() => {
+    ({ server } = makeServer())
+  })
+  afterEach(() => server.stop(true))
+
+  test('returns empty array initially', async () => {
+    const res = await fetch(`http://localhost:${server.port}/queue`)
+    const body = await res.json()
+    expect(body).toEqual([])
+  })
+})
+
+describe('POST /pending + POST /decide/:id', () => {
+  let server: ReturnType<typeof Bun.serve>
+  let pending: Map<string, PendingEntry>
+
+  beforeEach(() => {
+    ({ server, pending } = makeServer())
+  })
+  afterEach(() => server.stop(true))
+
+  test('enqueues and resolves allow', async () => {
+    const pendingRes = fetch(`http://localhost:${server.port}/pending`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tool_name: 'Bash', tool_input: { command: 'ls' }, session_id: 'sess1' }),
+    })
+
+    // Wait for it to appear in the queue
+    await Bun.sleep(10)
+    const [[id]] = [...pending.entries()]
+
+    const decideRes = await fetch(`http://localhost:${server.port}/decide/${id}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ decision: 'allow' }),
+    })
+    expect(decideRes.ok).toBe(true)
+
+    const response = await pendingRes
+    const body = await response.json() as { hookSpecificOutput: { decision: { behavior: string } } }
+    expect(body.hookSpecificOutput.decision.behavior).toBe('allow')
+    expect(pending.size).toBe(0)
+  })
+
+  test('resolves deny', async () => {
+    const pendingRes = fetch(`http://localhost:${server.port}/pending`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tool_name: 'Bash', tool_input: { command: 'rm -rf /' }, session_id: 'sess2' }),
+    })
+
+    await Bun.sleep(10)
+    const [[id]] = [...pending.entries()]
+
+    await fetch(`http://localhost:${server.port}/decide/${id}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ decision: 'deny' }),
+    })
+
+    const response = await pendingRes
+    const body = await response.json() as { hookSpecificOutput: { decision: { behavior: string } } }
+    expect(body.hookSpecificOutput.decision.behavior).toBe('deny')
+  })
+
+  test('auto-clears AskUserQuestion on new session activity', async () => {
+    // Enqueue an AskUserQuestion
+    const askRes = fetch(`http://localhost:${server.port}/pending`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tool_name: 'AskUserQuestion', tool_input: {}, session_id: 'sess3' }),
+    })
+
+    await Bun.sleep(10)
+    expect(pending.size).toBe(1)
+
+    // New tool call from same session auto-clears AskUserQuestion and adds Bash
+    const bashRes = fetch(`http://localhost:${server.port}/pending`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tool_name: 'Bash', tool_input: { command: 'echo hi' }, session_id: 'sess3' }),
+    })
+
+    await Bun.sleep(10)
+    // Only the Bash entry remains
+    expect(pending.size).toBe(1)
+    const [[, entry]] = [...pending.entries()]
+    expect(entry.payload.tool_name).toBe('Bash')
+
+    // AskUserQuestion was auto-resolved with allow
+    const askBody = await askRes.then(r => r.json()) as { hookSpecificOutput: { decision: { behavior: string } } }
+    expect(askBody.hookSpecificOutput.decision.behavior).toBe('allow')
+
+    // Resolve the Bash entry to clean up before afterEach
+    const [[bashId]] = [...pending.entries()]
+    await fetch(`http://localhost:${server.port}/decide/${bashId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ decision: 'allow' }),
+    })
+    await bashRes
+  })
+
+  test('404 on unknown id', async () => {
+    const res = await fetch(`http://localhost:${server.port}/decide/no-such-id`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ decision: 'allow' }),
+    })
+    expect(res.status).toBe(404)
+  })
+})
+
+describe('POST /post-tool-use', () => {
+  let server: ReturnType<typeof Bun.serve>
+  let pending: Map<string, PendingEntry>
+
+  beforeEach(() => {
+    ({ server, pending } = makeServer())
+  })
+  afterEach(() => server.stop(true))
+
+  test('resolves matching pending entry', async () => {
+    const payload = { tool_name: 'Bash', tool_input: { command: 'echo hi' }, session_id: 'sess4' }
+
+    const pendingRes = fetch(`http://localhost:${server.port}/pending`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+
+    await Bun.sleep(10)
+    expect(pending.size).toBe(1)
+
+    await fetch(`http://localhost:${server.port}/post-tool-use`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+
+    await pendingRes
+    expect(pending.size).toBe(0)
+  })
+})
+
+describe('GET /stopped/:id/output', () => {
+  let server: ReturnType<typeof Bun.serve>
+  let stopped: Map<string, StoppedSession>
+
+  beforeEach(() => {
+    ({ server, stopped } = makeServer())
+  })
+  afterEach(() => server.stop(true))
+
+  test('parses JSONL transcript and returns last assistant text', async () => {
+    const tmpPath = `/tmp/test-transcript-${Date.now()}.jsonl`
+    const lines = [
+      JSON.stringify({ message: { role: 'user', content: [{ type: 'text', text: 'hello' }] } }),
+      JSON.stringify({ message: { role: 'assistant', content: [{ type: 'text', text: 'first response' }] } }),
+      JSON.stringify({ message: { role: 'assistant', content: [{ type: 'text', text: 'final response' }] } }),
+    ]
+    await Bun.write(tmpPath, lines.join('\n'))
+
+    stopped.set('sess-output', {
+      sessionId: 'sess-output',
+      stoppedAt: Date.now(),
+      transcriptPath: tmpPath,
+      payload: {},
+    })
+
+    const res = await fetch(`http://localhost:${server.port}/stopped/sess-output/output`)
+    const body = await res.json() as { output: string }
+    expect(res.ok).toBe(true)
+    expect(body.output).toBe('final response')
+  })
+
+  test('404 for unknown session', async () => {
+    const res = await fetch(`http://localhost:${server.port}/stopped/no-such/output`)
+    expect(res.status).toBe(404)
+  })
+})
+
+describe('DELETE /stopped/:id', () => {
+  let server: ReturnType<typeof Bun.serve>
+  let stopped: Map<string, StoppedSession>
+
+  beforeEach(() => {
+    ({ server, stopped } = makeServer())
+  })
+  afterEach(() => server.stop(true))
+
+  test('200 on success', async () => {
+    stopped.set('s1', { sessionId: 's1', stoppedAt: Date.now(), payload: {} })
+    const res = await fetch(`http://localhost:${server.port}/stopped/s1`, { method: 'DELETE' })
+    expect(res.ok).toBe(true)
+    expect(stopped.has('s1')).toBe(false)
+  })
+
+  test('404 on missing', async () => {
+    const res = await fetch(`http://localhost:${server.port}/stopped/nope`, { method: 'DELETE' })
+    expect(res.status).toBe(404)
+  })
+})

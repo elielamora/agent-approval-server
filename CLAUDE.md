@@ -5,7 +5,7 @@ alwaysApply: true
 
 ## Project overview
 
-This is a Claude Code approval server. It intercepts Claude's `PermissionRequest` hook, holds the connection open (up to 10 min), and lets the user approve/deny via native macOS notifications (`alerter`) or a web UI at `http://localhost:4759`.
+This is a Claude Code approval server. It intercepts Claude's `PermissionRequest` hook, holds the connection open (up to 10 min), and lets the user approve/deny via a web UI at `http://localhost:4759`. Browser notifications alert the user to new items; clicking a notification focuses the tab.
 
 **Files:**
 - `index.ts` — Bun HTTP server (all state is in-memory; no database)
@@ -13,7 +13,6 @@ This is a Claude Code approval server. It intercepts Claude's `PermissionRequest
 - `hook-shim.sh` — Bash shim invoked by Claude Code hooks; enriches payload with terminal env vars and forwards to the server via `curl`
 
 **External runtime dependencies** (not in package.json):
-- `alerter` (via `brew install vjeantet/tap/alerter`) — macOS notification with Allow/Deny actions
 - `jq`, `curl` — used in `hook-shim.sh`
 - `osascript` — used for terminal focus (AppleScript)
 - `claude` CLI — `/explain/:id` spawns `claude -p ... --model haiku` as a subprocess
@@ -48,7 +47,7 @@ Default to using Bun instead of Node.js.
 
 ## Testing
 
-Use `bun test` to run tests.
+Write tests for new server-side logic. Run `bun test` after making changes to confirm nothing is broken.
 
 ```ts#index.test.ts
 import { test, expect } from "bun:test";

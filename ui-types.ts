@@ -1,0 +1,26 @@
+export interface StoppedSession {
+  sessionId: string
+  stoppedAt: number
+  transcriptPath?: string
+  terminal_info?: TerminalInfo
+}
+
+export interface TerminalInfo {
+  term_program?: string
+  iterm_session_id?: string
+  ghostty_resources_dir?: string
+}
+
+export interface QueueItem {
+  id: string
+  enqueuedAt: number
+  explanation?: string
+  tool_name?: string
+  tool_input?: Record<string, unknown>
+  session_id?: string
+  cwd?: string
+  terminal_info?: TerminalInfo
+}
+
+export interface AskOption { label: string; description?: string }
+export interface AskQuestion { question: string; header: string; options: AskOption[]; multiSelect: boolean }

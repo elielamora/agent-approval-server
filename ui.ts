@@ -2,48 +2,26 @@ import hljs from 'highlight.js'
 import * as Diff from 'diff'
 import { marked } from 'marked'
 import 'highlight.js/styles/github-dark.min.css'
-
-interface StoppedSession {
-  sessionId: string
-  stoppedAt: number
-  transcriptPath?: string
-  terminal_info?: TerminalInfo
-}
-
-interface TerminalInfo {
-  term_program?: string
-  iterm_session_id?: string
-  ghostty_resources_dir?: string
-}
-
-interface QueueItem {
-  id: string
-  enqueuedAt: number
-  explanation?: string
-  tool_name?: string
-  tool_input?: Record<string, unknown>
-  session_id?: string
-  cwd?: string
-  terminal_info?: TerminalInfo
-}
+import type { StoppedSession, QueueItem, AskOption, AskQuestion } from './ui-types'
+import { badgeClass, shortCwd, langFromPath } from './ui-utils'
 
 const POLL_MS = 1000
 let AUTO_DENY_MS = 10 * 60 * 1000 // fallback until /config responds
 const rendered = new Map<string, HTMLElement>()
 const renderedStopped = new Map<string, HTMLElement>()
 
+if (Notification.permission === 'default') Notification.requestPermission()
+
+function notify(title: string, body: string) {
+  if (Notification.permission !== 'granted') return
+  const n = new Notification(title, { body })
+  n.onclick = () => { window.focus(); n.close() }
+}
+
 fetch('/config')
   .then(r => r.json())
   .then((cfg: { autoDenyMs: number }) => { AUTO_DENY_MS = cfg.autoDenyMs })
   .catch(() => {})
-
-function badgeClass(toolName: string | undefined): string {
-  if (toolName === 'Bash')  return 'badge-bash'
-  if (toolName === 'Write') return 'badge-write'
-  if (toolName === 'Edit')  return 'badge-edit'
-  if (toolName === 'ExitPlanMode' || toolName === 'EnterPlanMode') return 'badge-plan'
-  return 'badge-default'
-}
 
 // Plan modal logic
 let planModalDecide: ((decision: string) => void) | null = null
@@ -104,21 +82,6 @@ document.getElementById('plan-modal')!.addEventListener('click', (e) => {
   }
 })
 
-function langFromPath(path: string): string {
-  const ext = path.split('.').pop()?.toLowerCase() ?? ''
-  const map: Record<string, string> = {
-    ts: 'typescript', tsx: 'typescript',
-    js: 'javascript', jsx: 'javascript',
-    json: 'json', py: 'python',
-    sh: 'bash', bash: 'bash',
-    rb: 'ruby', go: 'go', rs: 'rust',
-    html: 'html', css: 'css',
-    md: 'markdown', yaml: 'yaml', yml: 'yaml',
-    sql: 'sql',
-  }
-  return map[ext] ?? 'plaintext'
-}
-
 function makeDiffBlock(item: QueueItem): { pre: HTMLPreElement; filePath: string } {
   const filePath = (item.tool_input?.file_path ?? item.tool_input?.path ?? '') as string
   const oldStr = (item.tool_input?.old_string ?? '') as string
@@ -172,15 +135,6 @@ function makeCodeBlock(item: QueueItem): { pre: HTMLPreElement; filePath: string
   hljs.highlightElement(code)
   return { pre, filePath }
 }
-
-function shortCwd(cwd: string): string {
-  if (!cwd) return ''
-  const parts = cwd.split('/').filter(Boolean)
-  return parts.length <= 2 ? cwd : '…/' + parts.slice(-2).join('/')
-}
-
-interface AskOption { label: string; description?: string }
-interface AskQuestion { question: string; header: string; options: AskOption[]; multiSelect: boolean }
 
 function makeAskUserQuestionCard(item: QueueItem): HTMLElement {
   const card = document.createElement('div')
@@ -471,6 +425,7 @@ async function poll() {
         const card = makeCard(item)
         q.append(card)
         rendered.set(item.id, card)
+        notify('Claude needs approval', item.tool_name ?? 'unknown')
       }
     }
 
@@ -498,6 +453,7 @@ async function pollStopped() {
         const card = makeStoppedCard(session)
         list.append(card)
         renderedStopped.set(session.sessionId, card)
+        notify('Claude session finished', session.sessionId.slice(0, 8))
       }
     }
 
