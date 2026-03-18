@@ -49,7 +49,7 @@ brew install jq
 ## Run (dev)
 
 ```sh
-bun run index.ts
+bun --hot index.ts
 ```
 
 UI: http://localhost:4759
