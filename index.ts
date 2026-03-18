@@ -3,7 +3,7 @@ import { pendingRequests, idleSessions } from "./state";
 import { settings } from "./settings";
 import ui from "./ui.html";
 
-const PORT = 4759;
+const PORT = Number(process.env.PORT ?? 4759);
 
 Bun.serve({
   port: PORT,

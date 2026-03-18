@@ -5,6 +5,7 @@
 # Requires: jq, curl
 
 ENDPOINT="${1:-pending}"
+PORT="${PORT:-4759}"
 PAYLOAD="$(cat)"
 
 TERMINAL_INFO=$(jq -n \
@@ -18,4 +19,4 @@ ENRICHED=$(echo "$PAYLOAD" | jq --argjson ti "$TERMINAL_INFO" --arg cwd "${PWD:-
 curl -sS --max-time 610 \
   -X POST -H 'Content-Type: application/json' \
   -d "$ENRICHED" \
-  "http://localhost:4759/$ENDPOINT"
+  "http://localhost:${PORT}/$ENDPOINT"

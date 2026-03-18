@@ -2,6 +2,7 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
 
+const PORT = Number(process.env.PORT ?? 4759);
 const SHIM_DIR = join(homedir(), ".claude", "claude-approval-server");
 const SHIM_DEST = join(SHIM_DIR, "hook-shim.sh");
 const CLAUDE_SETTINGS = join(homedir(), ".claude", "settings.json");
@@ -218,7 +219,7 @@ async function runServe(): Promise<void> {
 
 async function runStatus(): Promise<void> {
   try {
-    const resp = await fetch("http://localhost:4759/health", {
+    const resp = await fetch(`http://localhost:${PORT}/health`, {
       signal: AbortSignal.timeout(2000),
     });
     const body = (await resp.json()) as { pending: number; idle: number };
