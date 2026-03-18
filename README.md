@@ -18,7 +18,7 @@ If no decision is made within 10 minutes, the request is auto-denied.
 
 **AskUserQuestion:**
 
-When Claude uses `AskUserQuestion`, the web UI shows the question text and available options as read-only context. Use **Focus** to bring the terminal forward and answer there, or **Dismiss** to unblock Claude and clear the card. The card also clears automatically when the next tool call from that session arrives.
+When Claude uses `AskUserQuestion`, the web UI shows the question text and available options as read-only context. Use **Focus** to bring the terminal forward and answer there, or **Dismiss** to acknowledge and clear the card. The card also clears automatically when the next tool call from that session arrives.
 
 **Plan review (ExitPlanMode / EnterPlanMode):**
 
@@ -49,7 +49,7 @@ brew install jq
 ## Run (dev)
 
 ```sh
-bun --hot index.ts
+bun run index.ts
 ```
 
 UI: http://localhost:4759
