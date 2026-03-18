@@ -264,7 +264,11 @@ export function createRoutes(
           resolveDecision = resolve;
         });
 
-        // Auto-resolve any lingering entries for this session (e.g. previous tool was CLI-denied)
+        // Auto-resolve any lingering entries for this session.
+        // AskUserQuestion cards are informational — they don't block Claude, so we resolve them
+        // with "allow" (a no-op) so the hook doesn't error. Any other pending tool for the same
+        // session means Claude moved on without waiting for approval (CLI-denied or timed out),
+        // so we resolve with "deny" to unblock the stream and clean up.
         const incomingSession =
           typeof payload.session_id === "string" ? payload.session_id : undefined;
         if (incomingSession) {
