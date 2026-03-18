@@ -5,6 +5,7 @@ Approval server for Claude Code hooks. Blocks tool calls until approved or denie
 ## How it works
 
 **Approvals:**
+
 1. Claude Code fires a `PermissionRequest` hook — a shell shim enriches the payload with terminal environment info and forwards it to `POST /pending`
 2. The server holds the connection open (up to 10 minutes), queuing the item
 3. A browser notification appears — clicking it focuses the web UI tab
@@ -100,6 +101,7 @@ curl http://localhost:4759/health
 ```
 
 Logs:
+
 - stdout: `/tmp/claude-approval.log`
 - stderr: `/tmp/claude-approval.error.log`
 
@@ -116,4 +118,3 @@ launchctl unload ~/Library/LaunchAgents/com.pwagenet.claude-approval.plist
 cp com.pwagenet.claude-approval.plist ~/Library/LaunchAgents/
 launchctl load ~/Library/LaunchAgents/com.pwagenet.claude-approval.plist
 ```
-

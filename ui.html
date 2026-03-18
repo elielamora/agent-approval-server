@@ -1,424 +1,577 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Claude Approval Queue</title>
-  <script type="module" src="./ui.ts"></script>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Claude Approval Queue</title>
+    <script type="module" src="./ui.ts"></script>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
 
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #0f1117;
-      color: #e2e8f0;
-      min-height: 100vh;
-      padding: 1rem;
-    }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #0f1117;
+        color: #e2e8f0;
+        min-height: 100vh;
+        padding: 1rem;
+      }
 
-    @media (min-width: 640px) {
-      body { padding: 2rem; }
-    }
+      @media (min-width: 640px) {
+        body {
+          padding: 2rem;
+        }
+      }
 
-    h1 {
-      font-size: 1.1rem;
-      font-weight: 600;
-      color: #94a3b8;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      margin-bottom: 1.5rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
+      h1 {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #94a3b8;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
 
-    h1 .dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: #22c55e;
-      animation: pulse 2s infinite;
-    }
+      h1 .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #22c55e;
+        animation: pulse 2s infinite;
+      }
 
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.3; }
-    }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.3;
+        }
+      }
 
-    #idle {
-      text-align: center;
-      color: #475569;
-      padding: 4rem 0;
-      font-size: 0.95rem;
-    }
+      #idle {
+        text-align: center;
+        color: #475569;
+        padding: 4rem 0;
+        font-size: 0.95rem;
+      }
 
-    .columns {
-      display: flex;
-      flex-direction: column;
-      gap: 2rem;
-      align-items: flex-start;
-    }
+      .columns {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+        align-items: flex-start;
+      }
 
-    @media (min-width: 900px) {
-      .columns { flex-direction: row; }
-    }
+      @media (min-width: 900px) {
+        .columns {
+          flex-direction: row;
+        }
+      }
 
-    .column {
-      width: 100%;
-      min-width: 0;
-      max-width: 720px;
-    }
+      .column {
+        width: 100%;
+        min-width: 0;
+        max-width: 720px;
+      }
 
-    @media (min-width: 900px) {
-      .column { flex: 1; width: auto; }
-    }
+      @media (min-width: 900px) {
+        .column {
+          flex: 1;
+          width: auto;
+        }
+      }
 
-    #queue {
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
+      #queue {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
 
-    #stopped-list {
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
+      #stopped-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
 
-    .card {
-      background: #1e2330;
-      border: 1px solid #2d3548;
-      border-radius: 10px;
-      padding: 1.25rem;
-      animation: slideIn 0.15s ease;
-    }
+      .card {
+        background: #1e2330;
+        border: 1px solid #2d3548;
+        border-radius: 10px;
+        padding: 1.25rem;
+        animation: slideIn 0.15s ease;
+      }
 
-    @keyframes slideIn {
-      from { opacity: 0; transform: translateY(-6px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateY(-6px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
 
-    .card-header {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      margin-bottom: 1rem;
-    }
+      .card-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+      }
 
-    .badge {
-      font-size: 0.7rem;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-      padding: 0.2em 0.55em;
-      border-radius: 4px;
-      text-transform: uppercase;
-    }
+      .badge {
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        padding: 0.2em 0.55em;
+        border-radius: 4px;
+        text-transform: uppercase;
+      }
 
-    .badge-bash    { background: #7c3aed22; color: #a78bfa; border: 1px solid #7c3aed44; }
-    .badge-write   { background: #dc262622; color: #f87171; border: 1px solid #dc262644; }
-    .badge-edit    { background: #d9770622; color: #fb923c; border: 1px solid #d9770644; }
-    .badge-default { background: #0ea5e922; color: #38bdf8; border: 1px solid #0ea5e944; }
-    .badge-plan    { background: #d9770622; color: #fb923c; border: 1px solid #d9770644; }
-    .card-plan     { border-left: 3px solid #d97706; }
+      .badge-bash {
+        background: #7c3aed22;
+        color: #a78bfa;
+        border: 1px solid #7c3aed44;
+      }
+      .badge-write {
+        background: #dc262622;
+        color: #f87171;
+        border: 1px solid #dc262644;
+      }
+      .badge-edit {
+        background: #d9770622;
+        color: #fb923c;
+        border: 1px solid #d9770644;
+      }
+      .badge-default {
+        background: #0ea5e922;
+        color: #38bdf8;
+        border: 1px solid #0ea5e944;
+      }
+      .badge-plan {
+        background: #d9770622;
+        color: #fb923c;
+        border: 1px solid #d9770644;
+      }
+      .card-plan {
+        border-left: 3px solid #d97706;
+      }
 
-    #plan-modal {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.75);
-      z-index: 100;
-      padding: 2rem;
-      overflow-y: auto;
-    }
-    #plan-modal.open { display: flex; align-items: flex-start; justify-content: center; }
+      #plan-modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.75);
+        z-index: 100;
+        padding: 2rem;
+        overflow-y: auto;
+      }
+      #plan-modal.open {
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+      }
 
-    #plan-modal-inner {
-      background: #1e2330;
-      border: 1px solid #2d3548;
-      border-radius: 10px;
-      width: 100%;
-      max-width: 860px;
-      display: flex;
-      flex-direction: column;
-    }
+      #plan-modal-inner {
+        background: #1e2330;
+        border: 1px solid #2d3548;
+        border-radius: 10px;
+        width: 100%;
+        max-width: 860px;
+        display: flex;
+        flex-direction: column;
+      }
 
-    #plan-modal-header {
-      padding: 1.25rem 1.5rem 0.75rem;
-      border-bottom: 1px solid #2d3548;
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-    }
+      #plan-modal-header {
+        padding: 1.25rem 1.5rem 0.75rem;
+        border-bottom: 1px solid #2d3548;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
 
-    #plan-modal-title {
-      font-size: 0.9rem;
-      font-weight: 600;
-      color: #e2e8f0;
-      flex: 1;
-    }
+      #plan-modal-title {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #e2e8f0;
+        flex: 1;
+      }
 
-    #plan-modal-body {
-      padding: 1.25rem 1.5rem;
-      font-size: 0.875rem;
-      color: #cbd5e1;
-      line-height: 1.6;
-      max-height: calc(100vh - 12rem);
-      overflow-y: auto;
-    }
+      #plan-modal-body {
+        padding: 1.25rem 1.5rem;
+        font-size: 0.875rem;
+        color: #cbd5e1;
+        line-height: 1.6;
+        max-height: calc(100vh - 12rem);
+        overflow-y: auto;
+      }
 
-    #plan-modal-body h1, #plan-modal-body h2, #plan-modal-body h3 {
-      color: #e2e8f0;
-      font-weight: 600;
-      margin: 1.25rem 0 0.5rem;
-    }
-    #plan-modal-body h1 { font-size: 1.1rem; }
-    #plan-modal-body h2 { font-size: 0.95rem; }
-    #plan-modal-body h3 { font-size: 0.875rem; color: #94a3b8; }
-    #plan-modal-body p { margin-bottom: 0.75rem; line-height: 1.6; }
-    #plan-modal-body ul, #plan-modal-body ol {
-      margin: 0.5rem 0 0.75rem 1.25rem;
-      line-height: 1.6;
-    }
-    #plan-modal-body li { margin-bottom: 0.25rem; }
-    #plan-modal-body code {
-      font-family: 'SF Mono', 'Fira Code', monospace;
-      font-size: 0.8em;
-      background: #0f1117;
-      padding: 0.1em 0.35em;
-      border-radius: 3px;
-      color: #fb923c;
-    }
-    #plan-modal-body pre {
-      background: #0f1117;
-      border: 1px solid #2d3548;
-      border-radius: 6px;
-      padding: 0.75rem 1rem;
-      margin-bottom: 0.75rem;
-      overflow-x: auto;
-      max-height: none;
-    }
-    #plan-modal-body pre code { background: none; padding: 0; color: #e2e8f0; }
-    #plan-modal-body hr { border: none; border-top: 1px solid #2d3548; margin: 1rem 0; }
-    #plan-modal-body strong { color: #e2e8f0; }
+      #plan-modal-body h1,
+      #plan-modal-body h2,
+      #plan-modal-body h3 {
+        color: #e2e8f0;
+        font-weight: 600;
+        margin: 1.25rem 0 0.5rem;
+      }
+      #plan-modal-body h1 {
+        font-size: 1.1rem;
+      }
+      #plan-modal-body h2 {
+        font-size: 0.95rem;
+      }
+      #plan-modal-body h3 {
+        font-size: 0.875rem;
+        color: #94a3b8;
+      }
+      #plan-modal-body p {
+        margin-bottom: 0.75rem;
+        line-height: 1.6;
+      }
+      #plan-modal-body ul,
+      #plan-modal-body ol {
+        margin: 0.5rem 0 0.75rem 1.25rem;
+        line-height: 1.6;
+      }
+      #plan-modal-body li {
+        margin-bottom: 0.25rem;
+      }
+      #plan-modal-body code {
+        font-family: "SF Mono", "Fira Code", monospace;
+        font-size: 0.8em;
+        background: #0f1117;
+        padding: 0.1em 0.35em;
+        border-radius: 3px;
+        color: #fb923c;
+      }
+      #plan-modal-body pre {
+        background: #0f1117;
+        border: 1px solid #2d3548;
+        border-radius: 6px;
+        padding: 0.75rem 1rem;
+        margin-bottom: 0.75rem;
+        overflow-x: auto;
+        max-height: none;
+      }
+      #plan-modal-body pre code {
+        background: none;
+        padding: 0;
+        color: #e2e8f0;
+      }
+      #plan-modal-body hr {
+        border: none;
+        border-top: 1px solid #2d3548;
+        margin: 1rem 0;
+      }
+      #plan-modal-body strong {
+        color: #e2e8f0;
+      }
 
-    #plan-modal-footer {
-      padding: 1rem 1.5rem;
-      border-top: 1px solid #2d3548;
-      display: flex;
-      gap: 0.625rem;
-    }
+      #plan-modal-footer {
+        padding: 1rem 1.5rem;
+        border-top: 1px solid #2d3548;
+        display: flex;
+        gap: 0.625rem;
+      }
 
-    .btn-approve-plan {
-      background: #16a34a;
-      color: #fff;
-    }
-    .btn-approve-plan:hover { background: #15803d; }
-    .btn-approve-plan:disabled { opacity: 0.4; cursor: not-allowed; }
+      .btn-approve-plan {
+        background: #16a34a;
+        color: #fff;
+      }
+      .btn-approve-plan:hover {
+        background: #15803d;
+      }
+      .btn-approve-plan:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
 
-    .session {
-      font-size: 0.72rem;
-      color: #475569;
-      font-family: monospace;
-      margin-left: auto;
-    }
+      .session {
+        font-size: 0.72rem;
+        color: #475569;
+        font-family: monospace;
+        margin-left: auto;
+      }
 
-    .timer {
-      font-size: 0.72rem;
-      color: #64748b;
-    }
+      .timer {
+        font-size: 0.72rem;
+        color: #64748b;
+      }
 
-    .cwd {
-      font-size: 0.72rem;
-      color: #475569;
-      font-family: monospace;
-    }
+      .cwd {
+        font-size: 0.72rem;
+        color: #475569;
+        font-family: monospace;
+      }
 
-    pre {
-      border: 1px solid #2d3548;
-      border-radius: 6px;
-      padding: 0.75rem 1rem !important;
-      font-size: 0.8rem;
-      font-family: 'SF Mono', 'Fira Code', monospace;
-      overflow-x: auto;
-      white-space: pre-wrap;
-      word-break: break-all;
-      margin-bottom: 1rem;
-      max-height: 200px;
-      overflow-y: auto;
-    }
+      pre {
+        border: 1px solid #2d3548;
+        border-radius: 6px;
+        padding: 0.75rem 1rem !important;
+        font-size: 0.8rem;
+        font-family: "SF Mono", "Fira Code", monospace;
+        overflow-x: auto;
+        white-space: pre-wrap;
+        word-break: break-all;
+        margin-bottom: 1rem;
+        max-height: 200px;
+        overflow-y: auto;
+      }
 
-    .file-path {
-      font-size: 0.72rem;
-      font-family: 'SF Mono', 'Fira Code', monospace;
-      color: #64748b;
-      margin-bottom: 0.25rem;
-    }
+      .file-path {
+        font-size: 0.72rem;
+        font-family: "SF Mono", "Fira Code", monospace;
+        color: #64748b;
+        margin-bottom: 0.25rem;
+      }
 
-    .diff-block { word-break: normal; }
-    .diff-added, .diff-removed, .diff-context { display: block; padding: 0 0.25rem; }
-    .diff-added   { background: rgba(22, 163, 74, 0.18); color: #86efac; }
-    .diff-removed { background: rgba(220, 38, 38, 0.18); color: #fca5a5; }
+      .diff-block {
+        word-break: normal;
+      }
+      .diff-added,
+      .diff-removed,
+      .diff-context {
+        display: block;
+        padding: 0 0.25rem;
+      }
+      .diff-added {
+        background: rgba(22, 163, 74, 0.18);
+        color: #86efac;
+      }
+      .diff-removed {
+        background: rgba(220, 38, 38, 0.18);
+        color: #fca5a5;
+      }
 
-    .actions {
-      display: flex;
-      gap: 0.625rem;
-    }
+      .actions {
+        display: flex;
+        gap: 0.625rem;
+      }
 
-    button {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35em;
-      padding: 0.45rem 1.2rem;
-      border-radius: 6px;
-      border: none;
-      font-size: 0.85rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: opacity 0.1s, transform 0.1s;
-    }
+      button {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35em;
+        padding: 0.45rem 1.2rem;
+        border-radius: 6px;
+        border: none;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition:
+          opacity 0.1s,
+          transform 0.1s;
+      }
 
-    button:active { transform: scale(0.97); }
+      button:active {
+        transform: scale(0.97);
+      }
 
-    .btn-allow {
-      background: #16a34a;
-      color: #fff;
-    }
-    .btn-allow:hover { background: #15803d; }
+      .btn-allow {
+        background: #16a34a;
+        color: #fff;
+      }
+      .btn-allow:hover {
+        background: #15803d;
+      }
 
-    .btn-deny {
-      background: #374151;
-      color: #d1d5db;
-    }
-    .btn-deny:hover { background: #4b5563; }
+      .btn-deny {
+        background: #374151;
+        color: #d1d5db;
+      }
+      .btn-deny:hover {
+        background: #4b5563;
+      }
 
-    .btn-allow:disabled, .btn-deny:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-    }
+      .btn-allow:disabled,
+      .btn-deny:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
 
-    .btn-explain {
-      background: transparent;
-      color: #64748b;
-      border: 1px solid #2d3548;
-    }
-    .btn-explain:hover { color: #94a3b8; border-color: #475569; }
-    .btn-explain:disabled { opacity: 0.4; cursor: not-allowed; }
+      .btn-explain {
+        background: transparent;
+        color: #64748b;
+        border: 1px solid #2d3548;
+      }
+      .btn-explain:hover {
+        color: #94a3b8;
+        border-color: #475569;
+      }
+      .btn-explain:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
 
-    .btn-focus {
-      background: transparent;
-      color: #64748b;
-      border: 1px solid #2d3548;
-    }
-    .btn-focus:hover { color: #94a3b8; border-color: #475569; }
+      .btn-focus {
+        background: transparent;
+        color: #64748b;
+        border: 1px solid #2d3548;
+      }
+      .btn-focus:hover {
+        color: #94a3b8;
+        border-color: #475569;
+      }
 
-    .dot-stopped { background: #64748b; animation: none; }
-    .badge-stopped { background: #1e293b; color: #64748b; border: 1px solid #334155; }
-    .stopped-time { font-size: 0.75rem; color: #475569; margin-bottom: 0.5rem; font-family: monospace; }
+      .dot-stopped {
+        background: #64748b;
+        animation: none;
+      }
+      .badge-stopped {
+        background: #1e293b;
+        color: #64748b;
+        border: 1px solid #334155;
+      }
+      .stopped-time {
+        font-size: 0.75rem;
+        color: #475569;
+        margin-bottom: 0.5rem;
+        font-family: monospace;
+      }
 
-    .stopped-output {
-      display: none;
-      font-size: 0.8rem;
-      color: #94a3b8;
-      line-height: 1.55;
-      word-break: break-word;
-      max-height: 200px;
-      overflow-y: auto;
-      border-left: 2px solid #334155;
-      padding: 0.4rem 0.75rem;
-      margin-bottom: 0.75rem;
-    }
-    .stopped-output p { margin-bottom: 0.4rem; }
-    .stopped-output p:last-child { margin-bottom: 0; }
-    .stopped-output ul, .stopped-output ol { margin: 0.25rem 0 0.4rem 1.1rem; }
-    .stopped-output code { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.8em; background: #0f1117; padding: 0.1em 0.3em; border-radius: 3px; }
-    .btn-dismiss { background: transparent; color: #64748b; border: 1px solid #2d3548; }
-    .btn-dismiss:hover { color: #94a3b8; border-color: #475569; }
+      .stopped-output {
+        display: none;
+        font-size: 0.8rem;
+        color: #94a3b8;
+        line-height: 1.55;
+        word-break: break-word;
+        max-height: 200px;
+        overflow-y: auto;
+        border-left: 2px solid #334155;
+        padding: 0.4rem 0.75rem;
+        margin-bottom: 0.75rem;
+      }
+      .stopped-output p {
+        margin-bottom: 0.4rem;
+      }
+      .stopped-output p:last-child {
+        margin-bottom: 0;
+      }
+      .stopped-output ul,
+      .stopped-output ol {
+        margin: 0.25rem 0 0.4rem 1.1rem;
+      }
+      .stopped-output code {
+        font-family: "SF Mono", "Fira Code", monospace;
+        font-size: 0.8em;
+        background: #0f1117;
+        padding: 0.1em 0.3em;
+        border-radius: 3px;
+      }
+      .btn-dismiss {
+        background: transparent;
+        color: #64748b;
+        border: 1px solid #2d3548;
+      }
+      .btn-dismiss:hover {
+        color: #94a3b8;
+        border-color: #475569;
+      }
 
-    #stopped-idle {
-      text-align: center;
-      color: #475569;
-      padding: 4rem 0;
-      font-size: 0.95rem;
-    }
+      #stopped-idle {
+        text-align: center;
+        color: #475569;
+        padding: 4rem 0;
+        font-size: 0.95rem;
+      }
 
-    .badge-question { background: #0d947422; color: #34d399; border: 1px solid #0d947444; }
+      .badge-question {
+        background: #0d947422;
+        color: #34d399;
+        border: 1px solid #0d947444;
+      }
 
-    .ask-body { margin-bottom: 1rem; }
+      .ask-body {
+        margin-bottom: 1rem;
+      }
 
-    .ask-section + .ask-section { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #2d3548; }
+      .ask-section + .ask-section {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid #2d3548;
+      }
 
-    .ask-section-header {
-      font-size: 0.7rem;
-      font-weight: 700;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: #64748b;
-      margin-bottom: 0.3rem;
-    }
+      .ask-section-header {
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: #64748b;
+        margin-bottom: 0.3rem;
+      }
 
-    .ask-section-question {
-      font-size: 0.9rem;
-      color: #e2e8f0;
-      margin-bottom: 0.6rem;
-      line-height: 1.4;
-    }
+      .ask-section-question {
+        font-size: 0.9rem;
+        color: #e2e8f0;
+        margin-bottom: 0.6rem;
+        line-height: 1.4;
+      }
 
-    .ask-option {
-      display: flex;
-      flex-direction: column;
-      padding: 0.3rem 0;
-    }
+      .ask-option {
+        display: flex;
+        flex-direction: column;
+        padding: 0.3rem 0;
+      }
 
-    .ask-option-label {
-      font-size: 0.82rem;
-      color: #94a3b8;
-      font-weight: 500;
-    }
+      .ask-option-label {
+        font-size: 0.82rem;
+        color: #94a3b8;
+        font-weight: 500;
+      }
 
-    .ask-option-desc {
-      font-size: 0.75rem;
-      color: #475569;
-      line-height: 1.4;
-    }
+      .ask-option-desc {
+        font-size: 0.75rem;
+        color: #475569;
+        line-height: 1.4;
+      }
 
-    .explanation {
-      font-size: 0.82rem;
-      color: #94a3b8;
-      line-height: 1.55;
-      border-left: 2px solid #334155;
-      padding: 0.4rem 0.75rem;
-      margin-bottom: 1rem;
-    }
-  </style>
-</head>
-<body>
-  <div id="plan-modal">
-    <div id="plan-modal-inner">
-      <div id="plan-modal-header">
-        <span class="badge badge-plan">ExitPlanMode</span>
-        <span id="plan-modal-title"></span>
+      .explanation {
+        font-size: 0.82rem;
+        color: #94a3b8;
+        line-height: 1.55;
+        border-left: 2px solid #334155;
+        padding: 0.4rem 0.75rem;
+        margin-bottom: 1rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="plan-modal">
+      <div id="plan-modal-inner">
+        <div id="plan-modal-header">
+          <span class="badge badge-plan">ExitPlanMode</span>
+          <span id="plan-modal-title"></span>
+        </div>
+        <div id="plan-modal-body"></div>
+        <div id="plan-modal-footer">
+          <button class="btn-approve-plan" id="plan-modal-approve">Approve Plan</button>
+          <button class="btn-deny" id="plan-modal-deny">Deny</button>
+          <button class="btn-focus" id="plan-modal-focus" style="display: none">Focus</button>
+          <button class="btn-dismiss" id="plan-modal-close" style="margin-left: auto">Close</button>
+        </div>
       </div>
-      <div id="plan-modal-body"></div>
-      <div id="plan-modal-footer">
-        <button class="btn-approve-plan" id="plan-modal-approve">Approve Plan</button>
-        <button class="btn-deny" id="plan-modal-deny">Deny</button>
-        <button class="btn-focus" id="plan-modal-focus" style="display:none">Focus</button>
-        <button class="btn-dismiss" id="plan-modal-close" style="margin-left:auto">Close</button>
+    </div>
+
+    <div class="columns">
+      <div class="column">
+        <h1><span class="dot"></span> Approval Queue</h1>
+        <div id="idle">No pending requests</div>
+        <div id="queue" style="display: none"></div>
+      </div>
+      <div class="column">
+        <h1><span class="dot dot-stopped"></span> Finished Sessions</h1>
+        <div id="stopped-idle">No finished sessions</div>
+        <div id="stopped-list" style="display: none"></div>
       </div>
     </div>
-  </div>
-
-  <div class="columns">
-    <div class="column">
-      <h1><span class="dot"></span> Approval Queue</h1>
-      <div id="idle">No pending requests</div>
-      <div id="queue" style="display:none"></div>
-    </div>
-    <div class="column">
-      <h1><span class="dot dot-stopped"></span> Finished Sessions</h1>
-      <div id="stopped-idle">No finished sessions</div>
-      <div id="stopped-list" style="display:none"></div>
-    </div>
-  </div>
-</body>
+  </body>
 </html>
