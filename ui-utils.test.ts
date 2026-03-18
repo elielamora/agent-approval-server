@@ -295,6 +295,24 @@ describe("parseGitCommit", () => {
   test("plain bash command returns null", () => {
     expect(parseGitCommit("ls -la")).toBeNull();
   });
+
+  test("body containing << heredoc syntax is still detected", () => {
+    const cmd =
+      `git add ui-utils.ts ui-utils.test.ts ui.html \\\n` +
+      `  && git commit -m "$(cat <<'EOF'\n` +
+      `feat(ui): detect interpreter in heredoc for syntax highlighting\n` +
+      `\n` +
+      `When a heredoc header has no filename extension (e.g. \`python3 << 'EOF'\`\n` +
+      `or \`cd /dir && node << EOF\`), fall back to matching the interpreter name\n` +
+      `using \`langFromInterpreter\` instead of defaulting to plaintext.\n` +
+      `\n` +
+      `Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>\n` +
+      `EOF\n` +
+      `)"`;
+    const result = parseGitCommit(cmd);
+    expect(result).not.toBeNull();
+    expect(result!.subject).toBe("feat(ui): detect interpreter in heredoc for syntax highlighting");
+  });
 });
 
 describe("langFromInterpreter", () => {
