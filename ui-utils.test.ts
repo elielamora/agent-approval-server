@@ -61,7 +61,10 @@ describe("formatToolName", () => {
   test("ember MCP tool strips server prefix", () => {
     expect(formatToolName("mcp__ember__search_ember_docs")).toBe("ember / search ember docs");
   });
-  test("regular tool unchanged", () => {
+  test("PascalCase tool split into words", () => {
+    expect(formatToolName("ExitPlanMode")).toBe("Exit Plan Mode");
+  });
+  test("single-word tool unchanged", () => {
     expect(formatToolName("Bash")).toBe("Bash");
   });
   test("undefined returns 'unknown'", () => {

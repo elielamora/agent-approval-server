@@ -20,7 +20,7 @@ export function formatToolName(name: string | undefined): string {
       : mcp.tool;
     return `${mcp.server} / ${toolStripped.replace(/_/g, " ")}`;
   }
-  return name;
+  return name.replace(/([a-z])([A-Z])/g, "$1 $2");
 }
 
 export function badgeClass(toolName: string | undefined): string {
