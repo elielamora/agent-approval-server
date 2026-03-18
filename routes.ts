@@ -13,7 +13,13 @@ import {
 function focusTerminal(entry: PendingEntry) {
   const script = buildFocusScript(entry.payload);
   if (!script) return;
-  Bun.spawn(["osascript", "-e", script], { stdout: "ignore", stderr: "ignore" });
+  console.log("[focus] script:\n" + script);
+  const proc = Bun.spawn(["osascript", "-e", script], { stdout: "pipe", stderr: "pipe" });
+  proc.exited.then(async (code) => {
+    const out = await new Response(proc.stdout).text();
+    const err = await new Response(proc.stderr).text();
+    console.log(`[focus] exit=${code} stdout=${JSON.stringify(out)} stderr=${JSON.stringify(err)}`);
+  });
 }
 
 export function createRoutes(
@@ -220,7 +226,15 @@ export function createRoutes(
         const session = stoppedSessions.get(req.params.id);
         if (!session) return Response.json({ error: "Not found" }, { status: 404 });
         const script = buildFocusScript(session.payload);
-        if (script) Bun.spawn(["osascript", "-e", script], { stdout: "ignore", stderr: "ignore" });
+        if (script) {
+          console.log("[focus-stopped] script:\n" + script);
+          const proc = Bun.spawn(["osascript", "-e", script], { stdout: "pipe", stderr: "pipe" });
+          proc.exited.then(async (code) => {
+            const out = await new Response(proc.stdout).text();
+            const err = await new Response(proc.stderr).text();
+            console.log(`[focus-stopped] exit=${code} stdout=${JSON.stringify(out)} stderr=${JSON.stringify(err)}`);
+          });
+        }
         return Response.json({ ok: true });
       },
     },

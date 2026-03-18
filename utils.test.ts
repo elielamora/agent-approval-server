@@ -94,6 +94,11 @@ describe("buildFocusScript", () => {
     });
     expect(script).toContain("Ghostty");
     expect(script).toContain("/home/user/proj");
+    expect(script).toContain("activate window");
+    expect(script).toContain("select tab");
+    expect(script).toContain("tell trm to focus");
+    expect(script).not.toContain("set index of w");
+    expect(script).not.toContain("set selected of t");
   });
 
   test("VSCode without cwd returns simple activate", () => {

@@ -82,8 +82,9 @@ tell application "Ghostty"
     repeat with t in tabs of w
       repeat with trm in terminals of t
         if working directory of trm is "${cwd}" then
-          set index of w to 1
-          set selected of t to true
+          tell w to activate window
+          tell t to select tab
+          tell trm to focus
           activate
           return
         end if
