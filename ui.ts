@@ -259,11 +259,8 @@ function makeCodeBlock(item: QueueItem): { pre: HTMLElement; filePath: string } 
       code.textContent = JSON.stringify(display, null, 2);
     }
   } else if (item.tool_name === "ExitPlanMode") {
-    const prompts = item.tool_input?.allowedPrompts;
-    code.className = "language-plaintext";
-    code.textContent = Array.isArray(prompts)
-      ? prompts.map((p: unknown) => asString(p)).join("\n")
-      : "";
+    code.className = "language-markdown";
+    code.textContent = asString(item.tool_input?.plan);
   } else {
     const display = item.tool_input ? parseEmbeddedJson(item.tool_input) : {};
     code.className = "language-json";
