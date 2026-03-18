@@ -317,7 +317,6 @@
       font-size: 0.8rem;
       color: #94a3b8;
       line-height: 1.55;
-      white-space: pre-wrap;
       word-break: break-word;
       max-height: 200px;
       overflow-y: auto;
@@ -325,6 +324,10 @@
       padding: 0.4rem 0.75rem;
       margin-bottom: 0.75rem;
     }
+    .stopped-output p { margin-bottom: 0.4rem; }
+    .stopped-output p:last-child { margin-bottom: 0; }
+    .stopped-output ul, .stopped-output ol { margin: 0.25rem 0 0.4rem 1.1rem; }
+    .stopped-output code { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.8em; background: #0f1117; padding: 0.1em 0.3em; border-radius: 3px; }
     .btn-dismiss { background: transparent; color: #64748b; border: 1px solid #2d3548; }
     .btn-dismiss:hover { color: #94a3b8; border-color: #475569; }
 

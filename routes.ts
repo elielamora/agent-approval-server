@@ -150,6 +150,7 @@ export function createRoutes(
         const items = [...stoppedSessions.values()].map(({ sessionId, stoppedAt, transcriptPath, payload }) => ({
           sessionId, stoppedAt, transcriptPath,
           terminal_info: payload.terminal_info,
+          cwd: payload.cwd,
         }))
         return Response.json(items)
       },
