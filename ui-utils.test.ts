@@ -52,7 +52,8 @@ describe("badgeClass", () => {
   test("Edit", () => expect(badgeClass("Edit")).toBe("badge-edit"));
   test("ExitPlanMode", () => expect(badgeClass("ExitPlanMode")).toBe("badge-plan"));
   test("EnterPlanMode", () => expect(badgeClass("EnterPlanMode")).toBe("badge-plan"));
-  test("MCP tool", () => expect(badgeClass("MCP__UNBLOCKED__UNBLOCKED_CONTEXT_ENGINE")).toBe("badge-mcp"));
+  test("MCP tool", () =>
+    expect(badgeClass("MCP__UNBLOCKED__UNBLOCKED_CONTEXT_ENGINE")).toBe("badge-mcp"));
   test("unknown defaults", () => expect(badgeClass("Glob")).toBe("badge-default"));
   test("undefined defaults", () => expect(badgeClass(undefined)).toBe("badge-default"));
 });

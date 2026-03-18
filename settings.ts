@@ -27,8 +27,6 @@ function loadSettings(): Settings {
 let saveChain: Promise<void> = Promise.resolve();
 
 export function saveSettings(): Promise<void> {
-  saveChain = saveChain.then(() =>
-    Bun.write(SETTINGS_FILE, JSON.stringify(settings, null, 2)),
-  );
+  saveChain = saveChain.then(() => Bun.write(SETTINGS_FILE, JSON.stringify(settings, null, 2)));
   return saveChain;
 }
