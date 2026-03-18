@@ -149,6 +149,21 @@ function makeDiffBlock(item: QueueItem): { pre: HTMLPreElement; filePath: string
   return { pre, filePath }
 }
 
+function parseEmbeddedJson(input: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(input)) {
+    if (typeof value === 'string') {
+      const trimmed = value.trim()
+      if ((trimmed.startsWith('{') && trimmed.endsWith('}')) ||
+          (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+        try { result[key] = JSON.parse(trimmed); continue } catch {}
+      }
+    }
+    result[key] = value
+  }
+  return result
+}
+
 function makeCodeBlock(item: QueueItem): { pre: HTMLPreElement; filePath: string } {
   if (item.tool_name === 'Edit') return makeDiffBlock(item)
 
@@ -159,13 +174,44 @@ function makeCodeBlock(item: QueueItem): { pre: HTMLPreElement; filePath: string
   if (item.tool_name === 'Bash') {
     code.className = 'language-bash'
     code.textContent = (item.tool_input?.command ?? '') as string
+
   } else if (item.tool_name === 'Write') {
     filePath = (item.tool_input?.file_path ?? item.tool_input?.path ?? '') as string
     code.className = `language-${langFromPath(filePath)}`
     code.textContent = (item.tool_input?.content ?? '') as string
+
+  } else if (item.tool_name === 'Read') {
+    filePath = (item.tool_input?.file_path ?? '') as string
+    const offset = item.tool_input?.offset
+    const limit = item.tool_input?.limit
+    const parts: string[] = []
+    if (offset != null) parts.push(`offset: ${offset}`)
+    if (limit != null) parts.push(`limit: ${limit}`)
+    code.className = 'language-plaintext'
+    code.textContent = parts.length > 0 ? parts.join('  ') : '(full file)'
+
+  } else if (item.tool_name === 'Glob') {
+    filePath = (item.tool_input?.path ?? '') as string
+    code.className = 'language-plaintext'
+    code.textContent = (item.tool_input?.pattern ?? '') as string
+
+  } else if (item.tool_name === 'Grep') {
+    filePath = (item.tool_input?.path ?? item.tool_input?.glob ?? '') as string
+    code.className = 'language-plaintext'
+    code.textContent = (item.tool_input?.pattern ?? '') as string
+
+  } else if (item.tool_name === 'WebFetch') {
+    code.className = 'language-plaintext'
+    code.textContent = (item.tool_input?.url ?? '') as string
+
+  } else if (item.tool_name === 'WebSearch') {
+    code.className = 'language-plaintext'
+    code.textContent = (item.tool_input?.query ?? '') as string
+
   } else {
+    const display = item.tool_input ? parseEmbeddedJson(item.tool_input) : {}
     code.className = 'language-json'
-    code.textContent = JSON.stringify(item.tool_input, null, 2)
+    code.textContent = JSON.stringify(display, null, 2)
   }
 
   pre.appendChild(code)
