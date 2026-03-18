@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
 import type { PendingEntry, IdleSession } from "./types";
 import { saveSettings, type Settings } from "./settings";
-import { AUTO_DENY_TIMEOUT_MS } from "./state";
+import { AUTO_DENY_TIMEOUT_MS, IDLE_SESSION_TTL_MS } from "./state";
 import {
   asString,
   stableStringify,
@@ -178,6 +178,13 @@ export function createRoutes(
 
     "/idle": {
       GET() {
+        const cutoff = Date.now() - IDLE_SESSION_TTL_MS;
+        for (const [id, session] of idleSessions) {
+          if (session.idleSince < cutoff) {
+            console.log(`[idle-expire] session=${id}`);
+            idleSessions.delete(id);
+          }
+        }
         const items = [...idleSessions.values()].map(
           ({ sessionId, idleSince, transcriptPath, payload }) => ({
             sessionId,
