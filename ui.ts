@@ -398,14 +398,17 @@ function makeStoppedCard(session: StoppedSession): HTMLElement {
   const when = new Date(session.stoppedAt).toLocaleTimeString()
   const ti = session.terminal_info
   const hasFocusTarget = !!(ti?.iterm_session_id || ti?.ghostty_resources_dir || ti?.term_program)
+  const cwdShort = shortCwd(session.cwd ?? '')
+  const cwdFull = session.cwd ?? ''
 
   card.innerHTML = `
     <div class="card-header">
       <span class="badge badge-stopped">Finished</span>
+      ${cwdShort ? `<span class="cwd" title="${cwdFull}">${cwdShort}</span>` : ''}
       <span class="session">${sid}</span>
     </div>
     <div class="stopped-time">${when}</div>
-    <div class="stopped-output"></div>
+    <div class="stopped-output" style="display:block">Loading…</div>
     <div class="actions">
       <button class="btn-dismiss">Dismiss</button>
       <button class="btn-focus"${hasFocusTarget ? '' : ' style="display:none"'}>Focus</button>
@@ -413,15 +416,21 @@ function makeStoppedCard(session: StoppedSession): HTMLElement {
   `
 
   const outputEl = card.querySelector<HTMLElement>('.stopped-output')!
-  fetch(`/stopped/${session.sessionId}/output`)
-    .then(r => r.json())
-    .then((body: { output?: string; error?: string }) => {
-      if (body.output) {
-        outputEl.textContent = body.output
-        outputEl.style.display = ''
-      }
-    })
-    .catch(() => {})
+
+  if (!session.transcriptPath) {
+    outputEl.textContent = 'No transcript available'
+  } else {
+    fetch(`/stopped/${session.sessionId}/output`)
+      .then(r => r.json())
+      .then((body: { output?: string; error?: string }) => {
+        if (body.output) {
+          outputEl.innerHTML = marked.parse(body.output) as string
+        } else {
+          outputEl.textContent = 'No output available'
+        }
+      })
+      .catch(() => { outputEl.textContent = 'Failed to load output' })
+  }
 
   card.querySelector('.btn-dismiss')!.addEventListener('click', async () => {
     await fetch(`/stopped/${session.sessionId}`, { method: 'DELETE' })

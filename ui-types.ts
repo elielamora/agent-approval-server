@@ -3,6 +3,7 @@ export interface StoppedSession {
   stoppedAt: number
   transcriptPath?: string
   terminal_info?: TerminalInfo
+  cwd?: string
 }
 
 export interface TerminalInfo {
