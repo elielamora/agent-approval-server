@@ -239,10 +239,10 @@ export function parseGitCommit(cmd: string): GitCommitInfo | null {
   if (!match) return null;
 
   const rawPreamble = match[1].trim();
-  if (!/\bgit\s+commit\b/.test(rawPreamble)) return null;
+  if (!/\bgit\b.*\bcommit\b/.test(rawPreamble)) return null;
 
-  // Simplify preamble: replace everything after "git commit" on the last line
-  const preamble = rawPreamble.replace(/(\bgit\s+commit\b).*$/, '$1 -m "…"');
+  // Simplify preamble: replace everything from "commit" to end of last line
+  const preamble = rawPreamble.replace(/(\bcommit\b).*$/, '$1 -m "…"');
 
   const lines = match[3].split("\n");
   const subject = lines[0] ?? "";

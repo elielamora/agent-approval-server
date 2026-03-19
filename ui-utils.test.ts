@@ -358,6 +358,24 @@ describe("parseGitCommit", () => {
     expect(parseGitCommit("ls -la")).toBeNull();
   });
 
+  test("git -C /path commit is detected and preamble simplified", () => {
+    const cmd =
+      `git -C /Users/pwagenet/Development/claude-approval-server add .claude/skills/log-investigation.md && ` +
+      `git -C /Users/pwagenet/Development/claude-approval-server commit -m "$(cat <<'EOF'\n` +
+      `chore: add log-investigation skill\n` +
+      `\n` +
+      `Captures the workflow.\n` +
+      `\n` +
+      `Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>\n` +
+      `EOF\n` +
+      `)"`;
+    const result = parseGitCommit(cmd);
+    expect(result).not.toBeNull();
+    expect(result!.subject).toBe("chore: add log-investigation skill");
+    expect(result!.body).toBe("Captures the workflow.");
+    expect(result!.preamble).toContain('commit -m "…"');
+  });
+
   test("body containing << heredoc syntax is still detected", () => {
     const cmd =
       `git add ui-utils.ts ui-utils.test.ts ui.html \\\n` +
