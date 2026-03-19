@@ -1,3 +1,5 @@
+import type { TerminalInfo } from "./ui-types";
+
 export function asString(val: unknown, fallback = ""): string {
   return typeof val === "string" ? val : fallback;
 }
@@ -252,8 +254,6 @@ export function parseGitCommit(cmd: string): GitCommitInfo | null {
     .trim();
   return { preamble, subject, body, trailers };
 }
-
-import type { TerminalInfo } from "./ui-types";
 
 export function getTerminalIcon(ti: TerminalInfo | undefined): string {
   if (!ti) return "";
