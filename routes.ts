@@ -142,6 +142,7 @@ export function createRoutes(
           const proc = Bun.spawn(["claude", "-p", prompt, "--model", "haiku"], {
             stdout: "pipe",
             stderr: "pipe",
+            env: { ...process.env, APPROVAL_SERVER_EXPLAIN: "1" },
           });
           const timeout = setTimeout(() => proc.kill(), 30_000);
           const [text, err] = await Promise.all([

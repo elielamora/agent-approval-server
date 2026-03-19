@@ -501,7 +501,7 @@ function makeCard(item: QueueItem): HTMLElement {
 
   if (item.explanation) {
     explanationEl.textContent = item.explanation;
-    explanationEl.style.display = "";
+    explanationEl.style.display = "block";
     explainBtn.style.display = "none";
   }
 
@@ -540,14 +540,14 @@ function makeCard(item: QueueItem): HTMLElement {
       // SAFETY: /explain/:id always returns { explanation?, error? }
       const body = (await res.json()) as { explanation?: string; error?: string };
       explanationEl.textContent = res.ok ? body.explanation! : `Error: ${body.error}`;
-      explanationEl.style.display = "";
+      explanationEl.style.display = "block";
       if (res.ok) {
         explainBtn.style.display = "none";
         return;
       }
     } catch (e) {
       explanationEl.textContent = `Error: ${String(e)}`;
-      explanationEl.style.display = "";
+      explanationEl.style.display = "block";
     }
     explainBtn.textContent = "Explain";
     explainBtn.disabled = false;

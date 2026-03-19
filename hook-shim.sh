@@ -4,6 +4,11 @@
 # Usage: hook-shim.sh <endpoint>  (e.g., "pending" or "post-tool-use")
 # Requires: jq, curl
 
+# When invoked from the explain subprocess, do nothing (avoids spurious idle sessions).
+if [[ -n "$APPROVAL_SERVER_EXPLAIN" ]]; then
+  exit 0
+fi
+
 ENDPOINT="${1:-pending}"
 PORT="${PORT:-4759}"
 PAYLOAD="$(cat)"
