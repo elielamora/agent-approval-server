@@ -283,6 +283,12 @@ describe("parseInterpreterCall", () => {
   test("script file without -c returns null", () => {
     expect(parseInterpreterCall("python3 script.py")).toBeNull();
   });
+  test("trailing shell redirection and pipe", () => {
+    const result = parseInterpreterCall(`python3 -c "import json\nprint(json.dumps({}))" 2>&1 | head -30`);
+    expect(result).not.toBeNull();
+    expect(result!.lang).toBe("python");
+    expect(result!.body).toBe("import json\nprint(json.dumps({}))");
+  });
 });
 
 describe("parseGitCommit", () => {

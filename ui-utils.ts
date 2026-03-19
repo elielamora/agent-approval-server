@@ -192,7 +192,7 @@ export function langFromInterpreter(name: string): string {
  * body, and the inferred language. Returns null if not matched.
  */
 export function parseInterpreterCall(cmd: string): EmbeddedCode | null {
-  const match = cmd.match(/^([\s\S]*?(python3?|node|ruby|perl|bash|sh)\b.*?-[ce])\s+(['"])([\s\S]*?)\3\s*$/);
+  const match = cmd.match(/^([\s\S]*?(python3?|node|ruby|perl|bash|sh)\b.*?-[ce])\s+(['"])([\s\S]*?)\3[\s\S]*$/);
   if (!match) return null;
   const header = match[1].trim();
   const interpreterName = match[2];
