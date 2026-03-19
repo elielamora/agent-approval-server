@@ -1,0 +1,96 @@
+import Component from '@glimmer/component';
+import { tracked } from '@glimmer/tracking';
+import { service } from '@ember/service';
+import { on } from '@ember/modifier';
+import { eq } from '../utils/helpers';
+import type AppSettingsService from '../services/app-settings';
+
+export default class SettingsModal extends Component {
+  @service declare appSettings: AppSettingsService;
+
+  @tracked localTheme: 'dark' | 'light' = 'dark';
+  @tracked localNotifEnabled = true;
+  @tracked localRequireInteraction = true;
+
+  get isOpen() {
+    return this.appSettings.isOpen;
+  }
+
+  openModal = () => {
+    this.localTheme = this.appSettings.theme;
+    this.localNotifEnabled = this.appSettings.notifEnabled;
+    this.localRequireInteraction = this.appSettings.notifRequireInteraction;
+    this.appSettings.open();
+  };
+
+  close = () => {
+    this.appSettings.close();
+  };
+
+  backdropClick = (e: MouseEvent) => {
+    if (e.target === e.currentTarget) this.appSettings.close();
+  };
+
+  setTheme = (e: Event) => {
+    const val = (e.target as HTMLSelectElement).value;
+    this.localTheme = val === 'light' ? 'light' : 'dark';
+  };
+
+  setNotifEnabled = (e: Event) => {
+    this.localNotifEnabled = (e.target as HTMLInputElement).checked;
+  };
+
+  setRequireInteraction = (e: Event) => {
+    this.localRequireInteraction = (e.target as HTMLInputElement).checked;
+  };
+
+  save = async () => {
+    await this.appSettings.save({
+      theme: this.localTheme,
+      notifEnabled: this.localNotifEnabled,
+      notifRequireInteraction: this.localRequireInteraction,
+    });
+  };
+
+  <template>
+    {{#if this.isOpen}}
+      <div id="settings-modal" class="open" role="dialog" {{on "click" this.backdropClick}}>
+        <div id="settings-inner">
+          <div id="settings-header">
+            <span>Settings</span>
+            <button id="settings-close" {{on "click" this.close}}>✕</button>
+          </div>
+          <div id="settings-body">
+            <label>
+              Theme
+              <select {{on "change" this.setTheme}}>
+                <option value="dark" selected={{eq this.localTheme "dark"}}>Dark</option>
+                <option value="light" selected={{eq this.localTheme "light"}}>Light</option>
+              </select>
+            </label>
+            <label class="settings-label-inline">
+              <input
+                type="checkbox"
+                checked={{this.localNotifEnabled}}
+                {{on "change" this.setNotifEnabled}}
+              />
+              Enable notifications
+            </label>
+            <label class="settings-label-inline">
+              <input
+                type="checkbox"
+                checked={{this.localRequireInteraction}}
+                {{on "change" this.setRequireInteraction}}
+              />
+              Require interaction (keep notifications visible)
+            </label>
+          </div>
+          <div id="settings-footer">
+            <button class="btn-deny" {{on "click" this.close}}>Cancel</button>
+            <button class="btn-allow" {{on "click" this.save}}>Save</button>
+          </div>
+        </div>
+      </div>
+    {{/if}}
+  </template>
+}

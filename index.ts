@@ -2,7 +2,6 @@ import { createRoutes } from "./routes";
 import { pendingRequests, idleSessions, payloadLog, IDLE_SESSION_TTL_MS } from "./state";
 import { settings } from "./settings";
 import { logRemoval } from "./utils";
-import ui from "./ui.html";
 
 const PORT = Number(process.env.PORT ?? 4759);
 
@@ -10,8 +9,14 @@ Bun.serve({
   port: PORT,
   idleTimeout: 0,
   routes: {
-    "/": ui,
     ...createRoutes(pendingRequests, idleSessions, settings, payloadLog),
+    "/*": async (req) => {
+      const url = new URL(req.url);
+      const path = url.pathname === "/" ? "/index.html" : url.pathname;
+      const file = Bun.file(`./frontend/dist${path}`);
+      if (await file.exists()) return new Response(file);
+      return new Response(Bun.file("./frontend/dist/index.html"));
+    },
   },
 });
 
