@@ -84,6 +84,10 @@ function openPlanModal(item: QueueItem, decide: (decision: string) => void) {
   const focusBtn = document.getElementById("plan-modal-focus") as HTMLButtonElement;
   const closeBtn = document.getElementById("plan-modal-close") as HTMLButtonElement;
 
+  const badge = document.getElementById("plan-modal-badge")!;
+  badge.textContent = formatToolName(item.tool_name);
+  badge.className = `badge ${badgeClass(item.tool_name)}`;
+
   const plan = asString(item.tool_input?.plan);
   const firstLine = plan.split("\n").find((l) => l.trim()) ?? item.tool_name ?? "Plan";
   title.textContent = firstLine.replace(/^#+\s*/, "");
