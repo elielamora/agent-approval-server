@@ -308,7 +308,24 @@ function makeCodeBlock(item: QueueItem): { pre: HTMLElement; filePath: string } 
   } else if (item.tool_name === "Grep") {
     filePath = asString(item.tool_input?.path ?? item.tool_input?.glob);
     code.className = "language-plaintext";
-    code.textContent = asString(item.tool_input?.pattern);
+    const pattern = asString(item.tool_input?.pattern);
+    const opts: string[] = [];
+    const outputMode = item.tool_input?.output_mode;
+    if (typeof outputMode === "string" && outputMode !== "files_with_matches") opts.push(`output: ${outputMode}`);
+    if (item.tool_input?.["-i"] === true) opts.push("-i");
+    if (item.tool_input?.multiline === true) opts.push("multiline");
+    const ctx = item.tool_input?.context ?? item.tool_input?.["-C"];
+    if (typeof ctx === "number") {
+      opts.push(`-C ${ctx}`);
+    } else {
+      const a = item.tool_input?.["-A"];
+      const b = item.tool_input?.["-B"];
+      if (typeof a === "number") opts.push(`-A ${a}`);
+      if (typeof b === "number") opts.push(`-B ${b}`);
+    }
+    if (typeof item.tool_input?.type === "string") opts.push(`type: ${item.tool_input.type}`);
+    if (typeof item.tool_input?.head_limit === "number") opts.push(`head: ${item.tool_input.head_limit}`);
+    code.textContent = opts.length > 0 ? `${pattern}\n${opts.join("  ")}` : pattern;
   } else if (item.tool_name === "WebFetch") {
     code.className = "language-plaintext";
     code.textContent = asString(item.tool_input?.url);
@@ -478,6 +495,15 @@ function makeCard(item: QueueItem): HTMLElement {
 
   const wrapper = card.querySelector(".code-block-wrapper")!;
   const { pre, filePath } = makeCodeBlock(item);
+  if (item.tool_name === "Bash") {
+    const desc = asString(item.tool_input?.description);
+    if (desc) {
+      const descEl = document.createElement("div");
+      descEl.className = "bash-description";
+      descEl.textContent = desc;
+      wrapper.appendChild(descEl);
+    }
+  }
   if (filePath) {
     const label = document.createElement("div");
     label.className = "file-path";

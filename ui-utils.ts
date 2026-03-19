@@ -81,7 +81,7 @@ export type CommandSplit = { segments: string[]; seps: ("|" | "&&" | ";")[] };
  */
 export function splitCommand(cmd: string): CommandSplit | null {
   const segments: string[] = [];
-  const seps: ("|" | "&&")[] = [];
+  const seps: ("|" | "&&" | ";")[] = [];
   let current = "";
   let depth = 0;
   let inSingle = false;
