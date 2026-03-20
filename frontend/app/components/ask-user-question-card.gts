@@ -31,7 +31,11 @@ export default class AskUserQuestionCard extends Component<Sig> {
 
   get hasFocusTarget() {
     const ti = this.args.item.terminal_info;
-    return !!(ti?.iterm_session_id || ti?.ghostty_resources_dir || ti?.term_program);
+    return !!(
+      ti?.iterm_session_id ||
+      ti?.ghostty_resources_dir ||
+      ti?.term_program
+    );
   }
 
   dismiss = async () => {
@@ -73,11 +77,16 @@ export default class AskUserQuestionCard extends Component<Sig> {
 
       <div class="actions">
         {{#if this.hasFocusTarget}}
-          <button class="btn-allow" {{on "click" this.focus}}>
+          <button type="button" class="btn-allow" {{on "click" this.focus}}>
             <TerminalIcon @terminalInfo={{@item.terminal_info}} />Focus
           </button>
         {{/if}}
-        <button class="btn-deny" disabled={{this.isDismissing}} {{on "click" this.dismiss}}>
+        <button
+          type="button"
+          class="btn-deny"
+          disabled={{this.isDismissing}}
+          {{on "click" this.dismiss}}
+        >
           Dismiss
         </button>
       </div>

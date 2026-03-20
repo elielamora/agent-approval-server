@@ -25,6 +25,13 @@ jobs:
             --outfile dist/claude-approval-server-macos-arm64
           bun build --compile --minify --target=bun-darwin-x64 cli.ts \
             --outfile dist/claude-approval-server-macos-x86_64
+      - name: Smoke test binary
+        run: |
+          ./dist/claude-approval-server-macos-arm64 serve &
+          SERVER_PID=$!
+          sleep 2
+          curl -sf http://localhost:4759/queue
+          kill $SERVER_PID
       - uses: softprops/action-gh-release@v2
         with:
           files: dist/claude-approval-server-*

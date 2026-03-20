@@ -25,7 +25,9 @@ export default class SettingsModal extends Component {
   }
 
   get localRequireInteraction() {
-    return this._localRequireInteraction ?? this.appSettings.notifRequireInteraction;
+    return (
+      this._localRequireInteraction ?? this.appSettings.notifRequireInteraction
+    );
   }
 
   close = () => {
@@ -62,18 +64,35 @@ export default class SettingsModal extends Component {
 
   <template>
     {{#if this.isOpen}}
-      <div id="settings-modal" class="open" role="dialog" {{on "click" this.backdropClick}}>
+      {{! template-lint-disable no-invalid-interactive }}
+      <div
+        id="settings-modal"
+        class="open"
+        role="dialog"
+        {{on "click" this.backdropClick}}
+      >
+        {{! template-lint-enable no-invalid-interactive }}
         <div id="settings-inner">
           <div id="settings-header">
             <span>Settings</span>
-            <button id="settings-close" {{on "click" this.close}}>✕</button>
+            <button
+              type="button"
+              id="settings-close"
+              {{on "click" this.close}}
+            >✕</button>
           </div>
           <div id="settings-body">
             <label>
               Theme
               <select {{on "change" this.setTheme}}>
-                <option value="dark" selected={{eq this.localTheme "dark"}}>Dark</option>
-                <option value="light" selected={{eq this.localTheme "light"}}>Light</option>
+                <option
+                  value="dark"
+                  selected={{eq this.localTheme "dark"}}
+                >Dark</option>
+                <option
+                  value="light"
+                  selected={{eq this.localTheme "light"}}
+                >Light</option>
               </select>
             </label>
             <label class="settings-label-inline">
@@ -94,8 +113,16 @@ export default class SettingsModal extends Component {
             </label>
           </div>
           <div id="settings-footer">
-            <button class="btn-deny" {{on "click" this.close}}>Cancel</button>
-            <button class="btn-allow" {{on "click" this.save}}>Save</button>
+            <button
+              type="button"
+              class="btn-deny"
+              {{on "click" this.close}}
+            >Cancel</button>
+            <button
+              type="button"
+              class="btn-allow"
+              {{on "click" this.save}}
+            >Save</button>
           </div>
         </div>
       </div>

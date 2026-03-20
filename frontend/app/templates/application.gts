@@ -1,5 +1,6 @@
 import Component from '@glimmer/component';
 import { service } from '@ember/service';
+import type Owner from '@ember/owner';
 import { on } from '@ember/modifier';
 import ApprovalQueue from '../components/approval-queue';
 import IdleSessions from '../components/idle-sessions';
@@ -12,13 +13,16 @@ export default class ApplicationTemplate extends Component {
   @service declare approvalQueue: ApprovalQueueService;
   @service declare appSettings: AppSettingsService;
 
-  constructor(owner: unknown, args: object) {
+  constructor(owner: Owner, args: object) {
     super(owner, args);
     void this.approvalQueue.start();
   }
 
   get notifDenied() {
-    return typeof Notification !== 'undefined' && Notification.permission === 'denied';
+    return (
+      typeof Notification !== 'undefined' &&
+      Notification.permission === 'denied'
+    );
   }
 
   openSettings = () => {
@@ -28,14 +32,20 @@ export default class ApplicationTemplate extends Component {
   <template>
     {{#if this.notifDenied}}
       <div id="notif-banner" class="visible">
-        Notifications are blocked for this page. Check your browser's notification settings for
+        Notifications are blocked for this page. Check your browser's
+        notification settings for
         <code>localhost:4759</code>
         and set it to Allow, then reload.
       </div>
     {{/if}}
 
     <div id="top-bar">
-      <button id="settings-btn" title="Settings" {{on "click" this.openSettings}}>⚙</button>
+      <button
+        type="button"
+        id="settings-btn"
+        title="Settings"
+        {{on "click" this.openSettings}}
+      >⚙</button>
     </div>
 
     <div class="columns">

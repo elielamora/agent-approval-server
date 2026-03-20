@@ -18,7 +18,7 @@ export default class IdleSessions extends Component {
     <div class="column">
       <h1><span class="dot dot-idle"></span>Idle Sessions</h1>
       {{#if this.hasSessions}}
-        <div id="idle-list" style="display:flex">
+        <div id="idle-list">
           {{#each this.sessions key="sessionId" as |session|}}
             <IdleSessionCard @session={{session}} />
           {{/each}}

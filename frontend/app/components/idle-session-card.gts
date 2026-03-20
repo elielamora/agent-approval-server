@@ -1,6 +1,7 @@
 import Component from '@glimmer/component';
 import { tracked } from '@glimmer/tracking';
 import { service } from '@ember/service';
+import type Owner from '@ember/owner';
 import { on } from '@ember/modifier';
 import { htmlSafe } from '@ember/template';
 import type { SafeString } from '@ember/template';
@@ -20,7 +21,7 @@ export default class IdleSessionCard extends Component<Sig> {
   @tracked outputHtml: SafeString | string | null = null;
   @tracked isDismissing = false;
 
-  constructor(owner: unknown, args: Sig['Args']) {
+  constructor(owner: Owner, args: Sig['Args']) {
     super(owner, args);
     void this.loadOutput();
   }
@@ -32,7 +33,9 @@ export default class IdleSessionCard extends Component<Sig> {
       return;
     }
     try {
-      const body = (await fetch(`/idle/${session.sessionId}/output`).then((r) => r.json())) as {
+      const body = (await fetch(`/idle/${session.sessionId}/output`).then((r) =>
+        r.json()
+      )) as {
         output?: string;
         error?: string;
       };
@@ -65,7 +68,11 @@ export default class IdleSessionCard extends Component<Sig> {
 
   get hasFocusTarget() {
     const ti = this.session.terminal_info;
-    return !!(ti?.iterm_session_id || ti?.ghostty_resources_dir || ti?.term_program);
+    return !!(
+      ti?.iterm_session_id ||
+      ti?.ghostty_resources_dir ||
+      ti?.term_program
+    );
   }
 
   get isLoadingOutput() {
@@ -106,11 +113,16 @@ export default class IdleSessionCard extends Component<Sig> {
       </div>
 
       <div class="actions">
-        <button class="btn-dismiss" disabled={{this.isDismissing}} {{on "click" this.dismiss}}>
+        <button
+          type="button"
+          class="btn-dismiss"
+          disabled={{this.isDismissing}}
+          {{on "click" this.dismiss}}
+        >
           Dismiss
         </button>
         {{#if this.hasFocusTarget}}
-          <button class="btn-focus" {{on "click" this.focus}}>
+          <button type="button" class="btn-focus" {{on "click" this.focus}}>
             <TerminalIcon @terminalInfo={{this.session.terminal_info}} />Focus
           </button>
         {{/if}}

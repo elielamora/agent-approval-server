@@ -4,11 +4,13 @@ export function asString(val: unknown, fallback = ''): string {
   return typeof val === 'string' ? val : fallback;
 }
 
-export function parseMcpToolName(name: string): { server: string; tool: string } | null {
+export function parseMcpToolName(
+  name: string
+): { server: string; tool: string } | null {
   const parts = name.split('__');
-  if (parts.length < 3 || parts[0].toUpperCase() !== 'MCP') return null;
+  if (parts.length < 3 || (parts[0] ?? '').toUpperCase() !== 'MCP') return null;
   return {
-    server: parts[1].toLowerCase(),
+    server: (parts[1] ?? '').toLowerCase(),
     tool: parts.slice(2).join('__').toLowerCase(),
   };
 }
@@ -29,7 +31,8 @@ export function badgeClass(toolName: string | undefined): string {
   if (toolName === 'Bash') return 'badge-bash';
   if (toolName === 'Write') return 'badge-write';
   if (toolName === 'Edit') return 'badge-edit';
-  if (toolName === 'ExitPlanMode' || toolName === 'EnterPlanMode') return 'badge-plan';
+  if (toolName === 'ExitPlanMode' || toolName === 'EnterPlanMode')
+    return 'badge-plan';
   if (toolName && parseMcpToolName(toolName)) return 'badge-mcp';
   return 'badge-default';
 }
@@ -158,20 +161,24 @@ export function splitPipedCommand(cmd: string): string[] | null {
 
 export function parseHeredoc(cmd: string): EmbeddedCode | null {
   const match = cmd.match(
-    /^(.*?<<\s*['"]?(\w+)['"]?)\s*\n([\s\S]*?)\n[ \t]*(?:;[ \t]*)?\2[ \t]*(?:\n([\s\S]+?))?\s*$/,
+    /^(.*?<<\s*['"]?(\w+)['"]?)\s*\n([\s\S]*?)\n[ \t]*(?:;[ \t]*)?\2[ \t]*(?:\n([\s\S]+?))?\s*$/
   );
   if (!match) return null;
-  const headerLine = match[1].trim();
+  const headerLine = (match[1] ?? '').trim();
   const trailing = match[4]?.trim();
   const header = trailing ? `${headerLine}\n${trailing}` : headerLine;
-  const body = match[3].replace(/ \\\n[ \t]*;[ \t]*/g, '\n').replace(/ *\\[ \t]*$/, '');
+  const body = (match[3] ?? '')
+    .replace(/ \\\n[ \t]*;[ \t]*/g, '\n')
+    .replace(/ *\\[ \t]*$/, '');
   const fileTokens = header.match(/\S+\.\w+/g);
   let lang: string;
   if (fileTokens) {
-    lang = langFromPath(fileTokens[fileTokens.length - 1]);
+    lang = langFromPath(fileTokens[fileTokens.length - 1] ?? '');
   } else {
     const interpMatch = header.match(/\b(python3?|node|ruby|perl|bash|sh)\b/);
-    lang = interpMatch ? langFromInterpreter(interpMatch[1]) : 'plaintext';
+    lang = interpMatch
+      ? langFromInterpreter(interpMatch[1] ?? '')
+      : 'plaintext';
   }
   return { header, body, lang };
 }
@@ -186,12 +193,12 @@ export function langFromInterpreter(name: string): string {
 
 export function parseInterpreterCall(cmd: string): EmbeddedCode | null {
   const match = cmd.match(
-    /^([\s\S]*?(python3?|node|ruby|perl|bash|sh)\b.*?-[ce])\s+(['"])([\s\S]*?)\3[\s\S]*$/,
+    /^([\s\S]*?(python3?|node|ruby|perl|bash|sh)\b.*?-[ce])\s+(['"])([\s\S]*?)\3[\s\S]*$/
   );
   if (!match) return null;
-  const header = match[1].trim();
-  const interpreterName = match[2];
-  const body = match[4];
+  const header = (match[1] ?? '').trim();
+  const interpreterName = match[2] ?? '';
+  const body = match[4] ?? '';
   return { header, body, lang: langFromInterpreter(interpreterName) };
 }
 
@@ -203,26 +210,28 @@ export interface GitCommitInfo {
 }
 
 export function parseGitCommit(cmd: string): GitCommitInfo | null {
-  const match = cmd.match(/^([\s\S]*?<<\s*['"]?(\w+)['"]?)\s*\n([\s\S]*?)\n\2[ \t]*\n\)["']?\s*$/);
+  const match = cmd.match(
+    /^([\s\S]*?<<\s*['"]?(\w+)['"]?)\s*\n([\s\S]*?)\n\2[ \t]*\n\)["']?\s*$/
+  );
   if (!match) return null;
 
-  const rawPreamble = match[1].trim();
+  const rawPreamble = (match[1] ?? '').trim();
   if (!/\bgit\b.*\bcommit\b/.test(rawPreamble)) return null;
 
   const preamble = rawPreamble.replace(/(\bcommit\b).*$/, '$1 -m "…"');
 
-  const lines = match[3].split('\n');
+  const lines = (match[3] ?? '').split('\n');
   const subject = lines[0] ?? '';
 
   const trailerRe = /^[A-Za-z][A-Za-z0-9-]*: .+/;
   const trailers: string[] = [];
   let i = lines.length - 1;
-  while (i > 0 && lines[i].trim() === '') i--;
-  while (i > 0 && trailerRe.test(lines[i])) {
-    trailers.unshift(lines[i]);
+  while (i > 0 && (lines[i] ?? '').trim() === '') i--;
+  while (i > 0 && trailerRe.test(lines[i] ?? '')) {
+    trailers.unshift(lines[i] ?? '');
     i--;
   }
-  if (i > 0 && lines[i].trim() === '') i--;
+  if (i > 0 && (lines[i] ?? '').trim() === '') i--;
 
   const body = lines
     .slice(1, i + 1)
@@ -246,7 +255,9 @@ export function getTerminalIcon(ti: TerminalInfo | undefined): string {
   return '';
 }
 
-export function parseEmbeddedJson(input: Record<string, unknown>): Record<string, unknown> {
+export function parseEmbeddedJson(
+  input: Record<string, unknown>
+): Record<string, unknown> {
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(input)) {
     if (typeof value === 'string') {

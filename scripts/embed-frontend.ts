@@ -54,7 +54,10 @@ async function walk(dir: string, prefix: string): Promise<Entry[]> {
 const files = await walk(DIST_DIR, "");
 
 const lines = files
-  .map((f) => `  ${JSON.stringify(f.path)}: { mime: ${JSON.stringify(f.mime)}, data: ${JSON.stringify(f.data)} },`)
+  .map(
+    (f) =>
+      `  ${JSON.stringify(f.path)}: { mime: ${JSON.stringify(f.mime)}, data: ${JSON.stringify(f.data)} },`,
+  )
   .join("\n");
 
 await Bun.write(

@@ -7,10 +7,10 @@
   "scripts": {
     "dev": "concurrently --names api,ui --prefix-colors blue,green \"bun --hot index.ts\" \"pnpm --dir frontend start\"",
     "test": "bun test",
-    "lint": "oxlint --type-aware --report-unused-disable-directives .",
-    "lint:fix": "oxlint --type-aware --report-unused-disable-directives --fix .",
-    "format": "oxfmt --write .",
-    "format:check": "oxfmt --check ."
+    "lint": "oxlint --type-aware --report-unused-disable-directives --ignore-pattern 'frontend/**' . && pnpm --dir frontend lint",
+    "lint:fix": "oxlint --type-aware --report-unused-disable-directives --fix --ignore-pattern 'frontend/**' . && pnpm --dir frontend lint:fix",
+    "format": "oxfmt --write . && pnpm --dir frontend format",
+    "format:check": "oxfmt --check . && pnpm --dir frontend lint:format"
   },
   "devDependencies": {
     "@types/bun": "latest",

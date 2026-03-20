@@ -20,7 +20,7 @@ export default class ApprovalQueue extends Component {
     <div class="column">
       <h1><span class="dot"></span>Approval Queue</h1>
       {{#if this.hasItems}}
-        <div id="queue" style="display:flex">
+        <div id="queue">
           {{#each this.items key="id" as |item|}}
             {{#if (eq item.tool_name "AskUserQuestion")}}
               <AskUserQuestionCard @item={{item}} />

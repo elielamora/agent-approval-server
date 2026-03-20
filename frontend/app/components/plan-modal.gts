@@ -32,7 +32,8 @@ export default class PlanModal extends Component {
 
   get title() {
     const plan = asString(this.item?.tool_input?.plan);
-    const firstLine = plan.split('\n').find((l) => l.trim()) ?? this.item?.tool_name ?? 'Plan';
+    const firstLine =
+      plan.split('\n').find((l) => l.trim()) ?? this.item?.tool_name ?? 'Plan';
     return firstLine.replace(/^#+\s*/, '');
   }
 
@@ -44,7 +45,11 @@ export default class PlanModal extends Component {
 
   get hasFocusTarget() {
     const ti = this.item?.terminal_info;
-    return !!(ti?.iterm_session_id || ti?.ghostty_resources_dir || ti?.term_program);
+    return !!(
+      ti?.iterm_session_id ||
+      ti?.ghostty_resources_dir ||
+      ti?.term_program
+    );
   }
 
   approve = async () => {
@@ -84,7 +89,14 @@ export default class PlanModal extends Component {
 
   <template>
     {{#if this.isOpen}}
-      <div id="plan-modal" class="open" role="dialog" {{on "click" this.backdropClick}}>
+      {{! template-lint-disable no-invalid-interactive }}
+      <div
+        id="plan-modal"
+        class="open"
+        role="dialog"
+        {{on "click" this.backdropClick}}
+      >
+        {{! template-lint-enable no-invalid-interactive }}
         <div id="plan-modal-inner">
           <div id="plan-modal-header">
             <span class={{this.badgeClass}}>{{this.toolLabel}}</span>
@@ -92,18 +104,32 @@ export default class PlanModal extends Component {
           </div>
           <div id="plan-modal-body">{{this.bodyHtml}}</div>
           <div id="plan-modal-footer">
-            <button class="btn-approve-plan" disabled={{this.isDeciding}} {{on "click" this.approve}}>
+            <button
+              type="button"
+              class="btn-approve-plan"
+              disabled={{this.isDeciding}}
+              {{on "click" this.approve}}
+            >
               Approve
             </button>
-            <button class="btn-deny" disabled={{this.isDeciding}} {{on "click" this.deny}}>
+            <button
+              type="button"
+              class="btn-deny"
+              disabled={{this.isDeciding}}
+              {{on "click" this.deny}}
+            >
               Deny
             </button>
             {{#if this.hasFocusTarget}}
-              <button class="btn-focus" {{on "click" this.focus}}>
+              <button type="button" class="btn-focus" {{on "click" this.focus}}>
                 <TerminalIcon @terminalInfo={{this.item.terminal_info}} />Focus
               </button>
             {{/if}}
-            <button id="plan-modal-close" {{on "click" this.close}}>Close</button>
+            <button
+              type="button"
+              id="plan-modal-close"
+              {{on "click" this.close}}
+            >Close</button>
           </div>
         </div>
       </div>

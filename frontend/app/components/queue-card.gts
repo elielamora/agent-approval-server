@@ -25,7 +25,10 @@ export default class QueueCard extends Component<Sig> {
   }
 
   get isPlan() {
-    return this.item.tool_name === 'ExitPlanMode' || this.item.tool_name === 'EnterPlanMode';
+    return (
+      this.item.tool_name === 'ExitPlanMode' ||
+      this.item.tool_name === 'EnterPlanMode'
+    );
   }
 
   get cardClass() {
@@ -47,13 +50,19 @@ export default class QueueCard extends Component<Sig> {
   get sessionLabel() {
     return (
       this.item.sessionName ??
-      (this.item.session_id ? String(this.item.session_id).slice(0, 8) + '…' : '—')
+      (this.item.session_id
+        ? String(this.item.session_id).slice(0, 8) + '…'
+        : '—')
     );
   }
 
   get hasFocusTarget() {
     const ti = this.item.terminal_info;
-    return !!(ti?.iterm_session_id || ti?.ghostty_resources_dir || ti?.term_program);
+    return !!(
+      ti?.iterm_session_id ||
+      ti?.ghostty_resources_dir ||
+      ti?.term_program
+    );
   }
 
   get allowLabel() {
@@ -86,8 +95,13 @@ export default class QueueCard extends Component<Sig> {
     this.isExplaining = true;
     try {
       const res = await fetch(`/explain/${this.item.id}`);
-      const body = (await res.json()) as { explanation?: string; error?: string };
-      this.explanation = res.ok ? (body.explanation ?? '') : `Error: ${body.error}`;
+      const body = (await res.json()) as {
+        explanation?: string;
+        error?: string;
+      };
+      this.explanation = res.ok
+        ? (body.explanation ?? '')
+        : `Error: ${body.error}`;
     } catch (e) {
       this.explanation = `Error: ${String(e)}`;
     } finally {
@@ -110,9 +124,17 @@ export default class QueueCard extends Component<Sig> {
         {{#if this.cwdShort}}
           <span class="cwd" title={{@item.cwd}}>{{this.cwdShort}}</span>
         {{/if}}
-        <CountdownTimer @enqueuedAt={{@item.enqueuedAt}} @durationMs={{this.approvalQueue.autoDenyMs}} />
+        <CountdownTimer
+          @enqueuedAt={{@item.enqueuedAt}}
+          @durationMs={{this.approvalQueue.autoDenyMs}}
+        />
         <span class="session">{{this.sessionLabel}}</span>
-        <button class="btn-x" aria-label="Dismiss" {{on "click" this.dismiss}}>✕</button>
+        <button
+          type="button"
+          class="btn-x"
+          aria-label="Dismiss"
+          {{on "click" this.dismiss}}
+        >✕</button>
       </div>
 
       <CodeBlock @item={{@item}} />
@@ -122,19 +144,34 @@ export default class QueueCard extends Component<Sig> {
       {{/if}}
 
       <div class="actions">
-        <button class="btn-allow" disabled={{this.isDeciding}} {{on "click" this.allow}}>
+        <button
+          type="button"
+          class="btn-allow"
+          disabled={{this.isDeciding}}
+          {{on "click" this.allow}}
+        >
           {{this.allowLabel}}
         </button>
-        <button class="btn-deny" disabled={{this.isDeciding}} {{on "click" this.deny}}>
+        <button
+          type="button"
+          class="btn-deny"
+          disabled={{this.isDeciding}}
+          {{on "click" this.deny}}
+        >
           Deny
         </button>
         {{#unless this.explanation}}
-          <button class="btn-explain" disabled={{this.isExplaining}} {{on "click" this.explain}}>
+          <button
+            type="button"
+            class="btn-explain"
+            disabled={{this.isExplaining}}
+            {{on "click" this.explain}}
+          >
             {{#if this.isExplaining}}Explaining…{{else}}Explain{{/if}}
           </button>
         {{/unless}}
         {{#if this.hasFocusTarget}}
-          <button class="btn-focus" {{on "click" this.focus}}>
+          <button type="button" class="btn-focus" {{on "click" this.focus}}>
             <TerminalIcon @terminalInfo={{@item.terminal_info}} />Focus
           </button>
         {{/if}}
