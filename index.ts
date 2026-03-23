@@ -31,6 +31,7 @@ const PORT = Number(process.env.PORT ?? 4759);
 
 Bun.serve({
   port: PORT,
+  hostname: process.env.HOST ?? "0.0.0.0",
   idleTimeout: 0,
   routes: {
     ...createRoutes(pendingRequests, idleSessions, settings, payloadLog),
