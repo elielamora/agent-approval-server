@@ -545,6 +545,7 @@ pre code {
   display: flex;
   flex-wrap: wrap;
   gap: 0.625rem;
+  margin-top: 1rem;
 }
 
 button {
