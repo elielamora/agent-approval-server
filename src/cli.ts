@@ -227,13 +227,21 @@ async function runInstallSwiftbar(): Promise<void> {
 
   const scriptName = "claude-approval.5s.sh";
 
-  // Remove any previously installed versions with different refresh intervals
+  // Remove any previously installed versions with different refresh intervals,
+  // migrating .vars.json (user settings) to the new script name if present.
+  const newVarsPath = join(pluginsDir, scriptName.replace(/\.sh$/, ".vars.json"));
   const existing = await Array.fromAsync(
     new Bun.Glob("claude-approval.*.sh").scan(pluginsDir),
   );
   for (const old of existing) {
     if (old !== scriptName) {
-      await Bun.$`rm -f ${join(pluginsDir, old)}`.quiet();
+      const oldVarsPath = join(pluginsDir, old.replace(/\.sh$/, ".vars.json"));
+      const oldVars = Bun.file(oldVarsPath);
+      if ((await oldVars.exists()) && !(await Bun.file(newVarsPath).exists())) {
+        await Bun.write(newVarsPath, oldVars);
+        console.log(`✓ Migrated settings to ${scriptName.replace(/\.sh$/, ".vars.json")}`);
+      }
+      await Bun.$`rm -f ${join(pluginsDir, old)} ${oldVarsPath}`.quiet();
       console.log(`✓ Removed old plugin: ${old}`);
     }
   }
