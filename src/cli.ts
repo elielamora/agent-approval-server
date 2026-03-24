@@ -231,7 +231,9 @@ async function runInstallSwiftbar(): Promise<void> {
   await Bun.write(dest, await src.text());
   await Bun.$`chmod +x ${dest}`.quiet();
   console.log(`✓ SwiftBar plugin installed to ${dest}`);
-  console.log("\nRefresh SwiftBar plugins to activate (right-click the SwiftBar icon → Refresh All).");
+  console.log(
+    "\nRefresh SwiftBar plugins to activate (right-click the SwiftBar icon → Refresh All).",
+  );
 }
 
 async function runServe(): Promise<void> {
