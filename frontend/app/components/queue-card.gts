@@ -122,6 +122,7 @@ export default class QueueCard extends Component<Sig> {
       <div class="card-header">
         <div class="card-header-top">
           <span class={{this.badgeClass}}>{{this.toolLabel}}</span>
+          <span class="session">{{this.sessionLabel}}</span>
           <button
             type="button"
             class="btn-x"
@@ -129,15 +130,14 @@ export default class QueueCard extends Component<Sig> {
             {{on "click" this.dismiss}}
           >✕</button>
         </div>
-        {{#if this.cwdShort}}
-          <span class="cwd" title={{@item.cwd}}>{{this.cwdShort}}</span>
-        {{/if}}
         <div class="card-header-meta">
+          {{#if this.cwdShort}}
+            <span class="cwd" title={{@item.cwd}}>{{this.cwdShort}}</span>
+          {{/if}}
           <CountdownTimer
             @enqueuedAt={{@item.enqueuedAt}}
             @durationMs={{this.approvalQueue.autoDenyMs}}
           />
-          <span class="session">{{this.sessionLabel}}</span>
         </div>
       </div>
 

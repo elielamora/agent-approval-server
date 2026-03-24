@@ -166,6 +166,7 @@ h1 .dot {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  min-width: 0;
 }
 
 .card-header-meta {
@@ -394,12 +395,13 @@ h1 .dot {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 18ch;
 }
 
 .timer {
   font-size: 0.72rem;
   color: var(--text-timer);
+  margin-left: auto;
+  white-space: nowrap;
 }
 
 .cwd {
