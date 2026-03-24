@@ -120,21 +120,25 @@ export default class QueueCard extends Component<Sig> {
   <template>
     <div class={{this.cardClass}}>
       <div class="card-header">
-        <span class={{this.badgeClass}}>{{this.toolLabel}}</span>
+        <div class="card-header-top">
+          <span class={{this.badgeClass}}>{{this.toolLabel}}</span>
+          <button
+            type="button"
+            class="btn-x"
+            aria-label="Dismiss"
+            {{on "click" this.dismiss}}
+          >✕</button>
+        </div>
         {{#if this.cwdShort}}
           <span class="cwd" title={{@item.cwd}}>{{this.cwdShort}}</span>
         {{/if}}
-        <CountdownTimer
-          @enqueuedAt={{@item.enqueuedAt}}
-          @durationMs={{this.approvalQueue.autoDenyMs}}
-        />
-        <span class="session">{{this.sessionLabel}}</span>
-        <button
-          type="button"
-          class="btn-x"
-          aria-label="Dismiss"
-          {{on "click" this.dismiss}}
-        >✕</button>
+        <div class="card-header-meta">
+          <CountdownTimer
+            @enqueuedAt={{@item.enqueuedAt}}
+            @durationMs={{this.approvalQueue.autoDenyMs}}
+          />
+          <span class="session">{{this.sessionLabel}}</span>
+        </div>
       </div>
 
       <CodeBlock @item={{@item}} />

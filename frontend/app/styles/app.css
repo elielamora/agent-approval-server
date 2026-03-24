@@ -157,10 +157,22 @@ h1 .dot {
 
 .card-header {
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.5rem 0.75rem;
+  flex-direction: column;
+  gap: 0.25rem;
   margin-bottom: 1rem;
+}
+
+.card-header-top {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.card-header-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem 0.6rem;
+  min-width: 0;
 }
 
 .btn-x {
@@ -378,7 +390,6 @@ h1 .dot {
   font-size: 0.72rem;
   color: var(--text-dim);
   font-family: monospace;
-  margin-left: auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -395,11 +406,9 @@ h1 .dot {
   font-size: 0.72rem;
   color: var(--text-dim);
   font-family: monospace;
-  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  flex: 1;
 }
 
 pre {
