@@ -2,7 +2,7 @@
 # <xbar.title>Claude Approval</xbar.title>
 # <xbar.version>v1.0</xbar.version>
 # <xbar.desc>Shows pending Claude Code approval requests and opens the approval UI.</xbar.desc>
-# <xbar.dependencies>curl,jq</xbar.dependencies>
+# <xbar.dependencies>curl</xbar.dependencies>
 # <swiftbar.persistentWebView>true</swiftbar.persistentWebView>
 # <swiftbar.refreshOnOpen>true</swiftbar.refreshOnOpen>
 # <swiftbar.hideRunInTerminal>true</swiftbar.hideRunInTerminal>
@@ -13,14 +13,23 @@ PORT="${PORT:-4759}"
 SERVER="http://127.0.0.1:$PORT"
 
 HEALTH=$(curl -s --max-time 2 "$SERVER/health" 2>/dev/null)
-PENDING=$(echo "$HEALTH" | jq -r '.pending // 0' 2>/dev/null)
+PENDING=$(echo "$HEALTH" | grep -o '"pending":[0-9]*' | grep -o '[0-9]*')
 if [ -z "$PENDING" ] || ! [[ "$PENDING" =~ ^[0-9]+$ ]]; then
   PENDING=0
 fi
 
-PARAMS="href='$SERVER' webview=true webvieww=440 webviewh=700"
+PARAMS="sfimage=asterisk href='$SERVER' webview=true webvieww=440 webviewh=700"
+
+BADGE_CIRCLES=("" "❶" "❷" "❸" "❹" "❺" "❻" "❼" "❽" "❾" "❿" \
+               "⓫" "⓬" "⓭" "⓮" "⓯" "⓰" "⓱" "⓲" "⓳" "⓴")
+
+BADGE=""
 if [ "$PENDING" -gt 0 ]; then
-  PARAMS="$PARAMS badge=$PENDING"
+  if [ "$PENDING" -le "${#BADGE_CIRCLES[@]}" ]; then
+    BADGE="${BADGE_CIRCLES[$PENDING]}"
+  else
+    BADGE="⏺"
+  fi
 fi
 
-echo "| sfimage=asterisk $PARAMS"
+echo "$BADGE | $PARAMS"
