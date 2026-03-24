@@ -152,7 +152,7 @@ async function removeClaudeHooks(settingsPath = CLAUDE_SETTINGS): Promise<void> 
 // ---------------------------------------------------------------------------
 
 async function runInstallHooks(): Promise<void> {
-  const shimFile = Bun.file(new URL("./hook-shim.sh", import.meta.url));
+  const shimFile = Bun.file(new URL("../hook-shim.sh", import.meta.url));
 
   await Bun.$`mkdir -p ${SHIM_DIR}`;
   await Bun.write(SHIM_DEST, await shimFile.text());
@@ -227,7 +227,7 @@ async function runInstallSwiftbar(): Promise<void> {
 
   const scriptName = "claude-approval.30s.sh";
   const dest = join(pluginsDir, scriptName);
-  const src = Bun.file(new URL(`./swiftbar/${scriptName}`, import.meta.url));
+  const src = Bun.file(new URL(`../swiftbar/${scriptName}`, import.meta.url));
   await Bun.write(dest, await src.text());
   await Bun.$`chmod +x ${dest}`.quiet();
   console.log(`✓ SwiftBar plugin installed to ${dest}`);
