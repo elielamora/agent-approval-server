@@ -193,7 +193,7 @@ export function langFromInterpreter(name: string): string {
 
 export function parseInterpreterCall(cmd: string): EmbeddedCode | null {
   const match = cmd.match(
-    /^([\s\S]*?(python3?|node|ruby|perl|bash|sh)\b.*?-[ce])\s+(['"])([\s\S]*?)\3[\s\S]*$/
+    /^([\s\S]*?(python3?|node|ruby|perl|bash|sh)\b[^|]*?-[ce])\s+(['"])((?:\\[\s\S]|(?!\3)[^\\])*)\3[\s\S]*$/
   );
   if (!match) return null;
   const header = (match[1] ?? '').trim();

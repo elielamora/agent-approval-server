@@ -486,6 +486,36 @@ module('parseInterpreterCall', function () {
     assert.strictEqual(result!.lang, 'python');
     assert.strictEqual(result!.body, 'import json\nprint(json.dumps({}))');
   });
+
+  test('backslash-escaped quotes inside body are not treated as closing quote', function (assert) {
+    const cmd =
+      'python3 -c "\nimport subprocess\nmsg = b\'{\\"jsonrpc\\":\\"2.0\\"}\'\nprint(msg)\n" 2>&1';
+    const result = parseInterpreterCall(cmd);
+    assert.ok(result);
+    assert.strictEqual(result!.lang, 'python');
+    assert.ok(
+      result!.body.includes('\\"jsonrpc\\"'),
+      'body should include escaped quotes'
+    );
+  });
+
+  test('piped grep -c does not false-positive as interpreter call', function (assert) {
+    assert.strictEqual(
+      parseInterpreterCall(
+        `oxlint --config /tmp/oxlint-empty-config.json 2>&1 | grep -c 'typescript'`
+      ),
+      null
+    );
+  });
+
+  test('bash script piped to grep -c returns null', function (assert) {
+    assert.strictEqual(
+      parseInterpreterCall(
+        `bash run-checks.sh --config /tmp/oxlint-empty-config.json 2>&1 | grep -c 'typescript'`
+      ),
+      null
+    );
+  });
 });
 
 module('parseGitCommit', function () {
