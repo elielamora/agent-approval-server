@@ -40,11 +40,18 @@ function buildContent(pendingCount: number): string {
 }
 
 function callSwiftBar(url: string): void {
-  Bun.spawn(["open", url], { stdout: "pipe", stderr: "pipe" });
+  const proc = Bun.spawn(["open", url], { stdout: "pipe", stderr: "pipe" });
+  proc.exited.then(async (code) => {
+    if (code !== 0) {
+      const err = await new Response(proc.stderr).text();
+      console.error(`[swiftbar] open failed code=${code} err=${err.trim()}`);
+    }
+  });
 }
 
 function setEphemeral(content: string): void {
   const url = `swiftbar://setephemeralplugin?name=${EPHEMERAL_NAME}&content=${encodeURIComponent(content)}`;
+  console.log(`[swiftbar] setEphemeral content=${JSON.stringify(content)}`);
   callSwiftBar(url);
 }
 
@@ -67,6 +74,7 @@ export function recordWindowVisibility(
   pendingCount: number,
   origin?: string,
 ): void {
+  console.log(`[swiftbar] window-activity visible=${visible}`);
   latestCount = pendingCount;
   windowVisible = visible;
   if (origin) lastKnownOrigin = origin;
