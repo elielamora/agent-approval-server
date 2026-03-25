@@ -12,9 +12,11 @@ import {
   parseHeredoc,
   parseInterpreterCall,
   parseGitCommit,
+  parseGhPrCreate,
   splitCommand,
   parseEmbeddedJson,
   type GitCommitInfo,
+  type GhPrInfo,
 } from '../utils/ui-utils';
 import type { QueueItem } from '../utils/ui-types';
 
@@ -27,6 +29,12 @@ type DisplayKind =
   | {
       kind: 'git-commit';
       info: GitCommitInfo;
+      preambleHtml: SafeString;
+      bodyHtml: SafeString;
+    }
+  | {
+      kind: 'gh-pr';
+      info: GhPrInfo;
       preambleHtml: SafeString;
       bodyHtml: SafeString;
     }
@@ -89,6 +97,17 @@ export default class CodeBlock extends Component<Sig> {
           preambleHtml: highlight(gitInfo.preamble, 'bash'),
           // SAFETY: marked.parse returns string when called synchronously
           bodyHtml: htmlSafe(marked.parse(gitInfo.body) as string),
+        };
+      }
+
+      const ghPrInfo = parseGhPrCreate(rawCmd);
+      if (ghPrInfo) {
+        return {
+          kind: 'gh-pr',
+          info: ghPrInfo,
+          preambleHtml: highlight(ghPrInfo.preamble, 'bash'),
+          // SAFETY: marked.parse returns string when called synchronously
+          bodyHtml: htmlSafe(marked.parse(ghPrInfo.body) as string),
         };
       }
 
@@ -300,6 +319,11 @@ export default class CodeBlock extends Component<Sig> {
     return d.kind === 'git-commit' ? d : null;
   }
 
+  get ghPrDisplay() {
+    const d = this.display;
+    return d.kind === 'gh-pr' ? d : null;
+  }
+
   get twoPartDisplay() {
     const d = this.display;
     return d.kind === 'two-part' ? d : null;
@@ -308,6 +332,21 @@ export default class CodeBlock extends Component<Sig> {
   get codeDisplay() {
     const d = this.display;
     return d.kind === 'code' ? d : null;
+  }
+
+  get prTitleParts() {
+    const gh = this.ghPrDisplay;
+    if (!gh) return null;
+    const { title } = gh.info;
+    const ccMatch = title.match(/^(\w+)(\([^)]+\))?(!)?: /);
+    if (ccMatch) {
+      return {
+        prefix: ccMatch[0],
+        prefixType: ccMatch[1] ?? null,
+        rest: title.slice(ccMatch[0].length),
+      };
+    }
+    return { prefix: null, prefixType: null, rest: title };
   }
 
   get commitSubjectParts() {
@@ -349,6 +388,27 @@ export default class CodeBlock extends Component<Sig> {
             {{#each gc.info.trailers as |trailer|}}
               <div class="commit-trailer">{{trailer}}</div>
             {{/each}}
+          </div>
+        </div>
+      {{/if}}
+    {{/let}}
+    {{#let this.ghPrDisplay as |gh|}}
+      {{#if gh}}
+        <div class="git-commit-block">
+          <pre><code class="hljs language-bash">{{gh.preambleHtml}}</code></pre>
+          <div class="commit-message">
+            <div class="commit-subject">
+              {{#if this.prTitleParts.prefix}}
+                <span
+                  class="commit-type commit-type-{{this.prTitleParts.prefixType}}"
+                >{{this.prTitleParts.prefix}}</span>{{this.prTitleParts.rest}}
+              {{else}}
+                {{this.prTitleParts.rest}}
+              {{/if}}
+            </div>
+            {{#if gh.info.body}}
+              <div class="commit-body markdown-body">{{gh.bodyHtml}}</div>
+            {{/if}}
           </div>
         </div>
       {{/if}}

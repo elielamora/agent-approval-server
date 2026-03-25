@@ -209,9 +209,15 @@ export interface GitCommitInfo {
   trailers: string[];
 }
 
+export interface GhPrInfo {
+  preamble: string;
+  title: string;
+  body: string;
+}
+
 export function parseGitCommit(cmd: string): GitCommitInfo | null {
   const match = cmd.match(
-    /^([\s\S]*?<<\s*['"]?(\w+)['"]?)\s*\n([\s\S]*?)\n\2[ \t]*\n\)["']?\s*$/
+    /^([\s\S]*?<<\s*['"]?(\w+)['"]?)\s*\n([\s\S]*?)\n[ \t]*\2[ \t]*\n[ \t]*\)["']?\s*$/
   );
   if (!match) return null;
 
@@ -221,23 +227,62 @@ export function parseGitCommit(cmd: string): GitCommitInfo | null {
   const preamble = rawPreamble.replace(/(\bcommit\b).*$/, '$1 -m "…"');
 
   const lines = (match[3] ?? '').split('\n');
-  const subject = lines[0] ?? '';
+  const subject = (lines[0] ?? '').trim();
 
   const trailerRe = /^[A-Za-z][A-Za-z0-9-]*: .+/;
   const trailers: string[] = [];
   let i = lines.length - 1;
   while (i > 0 && (lines[i] ?? '').trim() === '') i--;
-  while (i > 0 && trailerRe.test(lines[i] ?? '')) {
-    trailers.unshift(lines[i] ?? '');
+  while (i > 0 && trailerRe.test((lines[i] ?? '').trim())) {
+    trailers.unshift((lines[i] ?? '').trim());
     i--;
   }
   if (i > 0 && (lines[i] ?? '').trim() === '') i--;
 
-  const body = lines
-    .slice(1, i + 1)
-    .join('\n')
-    .trim();
+  const body = dedent(
+    lines
+      .slice(1, i + 1)
+      .join('\n')
+      .trim()
+  );
   return { preamble, subject, body, trailers };
+}
+
+function dedent(text: string): string {
+  const lines = text.split('\n');
+  const nonEmpty = lines.filter((l) => l.trim().length > 0);
+  if (nonEmpty.length === 0) return text;
+  const minIndent = Math.min(
+    ...nonEmpty.map((l) => l.match(/^[ \t]*/)?.[0]?.length ?? 0)
+  );
+  return minIndent === 0
+    ? text
+    : lines.map((l) => l.slice(minIndent)).join('\n');
+}
+
+export function parseGhPrCreate(cmd: string): GhPrInfo | null {
+  if (!/\bgh\s+pr\s+create\b/.test(cmd)) return null;
+
+  const titleMatch = cmd.match(/--title\s+"((?:[^"\\]|\\.)*)"/);
+  if (!titleMatch) return null;
+  const title = titleMatch[1] ?? '';
+
+  let body = '';
+  // --body "$(cat <<'MARKER'\n...\nMARKER\n)"
+  const hdMatch = cmd.match(
+    /--body\s+"[^"]*<<\s*['"]?(\w+)['"]?[ \t]*\n([\s\S]*?)\n[ \t]*\1[ \t]*\n/
+  );
+  if (hdMatch) {
+    body = dedent((hdMatch[2] ?? '').trimEnd());
+  } else {
+    const bodyMatch = cmd.match(/--body\s+"([\s\S]*?)"\s*(?:--|$)/);
+    if (bodyMatch) body = bodyMatch[1] ?? '';
+  }
+
+  const preambleMatch = cmd.match(/^([\s\S]*?\bgh\s+pr\s+create\b)/);
+  const preamble = (preambleMatch?.[1] ?? 'gh pr create').trim();
+
+  return { preamble, title, body };
 }
 
 export function getTerminalIcon(ti: TerminalInfo | undefined): string {

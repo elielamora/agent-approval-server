@@ -12,6 +12,7 @@ import {
   parseInterpreterCall,
   langFromInterpreter,
   parseGitCommit,
+  parseGhPrCreate,
   parseEmbeddedJson,
 } from 'frontend/utils/ui-utils';
 
@@ -645,6 +646,62 @@ module('asString', function () {
 
   test('returns custom fallback', function (assert) {
     assert.strictEqual(asString(undefined, 'default'), 'default');
+  });
+});
+
+module('parseGhPrCreate', function () {
+  const HEREDOC_CMD =
+    `cd /some/repo && gh pr create \\\n` +
+    `     --title "feat: add cool feature" \\\n` +
+    `     --body "$(cat <<'EOF'\n` +
+    `   ## Summary\n` +
+    `\n` +
+    `   - Does a thing\n` +
+    `   - Does another thing\n` +
+    `\n` +
+    `   ## Test plan\n` +
+    `\n` +
+    `   - [ ] Run tests\n` +
+    `   EOF\n` +
+    `   )"`;
+
+  test('detects gh pr create with heredoc body', function (assert) {
+    assert.ok(parseGhPrCreate(HEREDOC_CMD));
+  });
+
+  test('extracts title', function (assert) {
+    const result = parseGhPrCreate(HEREDOC_CMD);
+    assert.strictEqual(result!.title, 'feat: add cool feature');
+  });
+
+  test('extracts and dedents heredoc body', function (assert) {
+    const result = parseGhPrCreate(HEREDOC_CMD);
+    assert.ok(result!.body.includes('## Summary'));
+    assert.ok(result!.body.includes('- Does a thing'));
+    assert.notOk(
+      /^ {3}/m.test(result!.body),
+      'leading indent should be stripped'
+    );
+  });
+
+  test('preamble includes cd prefix and gh pr create', function (assert) {
+    const result = parseGhPrCreate(HEREDOC_CMD);
+    assert.ok(result!.preamble.includes('gh pr create'));
+    assert.ok(result!.preamble.includes('cd /some/repo'));
+  });
+
+  test('returns null for non-pr commands', function (assert) {
+    assert.strictEqual(parseGhPrCreate('git commit -m "foo"'), null);
+    assert.strictEqual(parseGhPrCreate('gh issue create --title "x"'), null);
+    assert.strictEqual(parseGhPrCreate('ls -la'), null);
+  });
+
+  test('returns null when --title is missing', function (assert) {
+    assert.strictEqual(parseGhPrCreate('gh pr create --body "foo"'), null);
+  });
+
+  test('does not match parseGitCommit', function (assert) {
+    assert.strictEqual(parseGitCommit(HEREDOC_CMD), null);
   });
 });
 
