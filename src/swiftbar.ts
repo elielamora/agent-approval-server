@@ -58,7 +58,7 @@ export function recordWindowVisibility(visible: boolean, pendingCount: number, o
 export function notifySwiftBar(pendingCount: number): void {
   latestCount = pendingCount;
   if (!enabled) return;
-  if (windowVisible) return;
+if (windowVisible) return;
   setEphemeral(buildContent(pendingCount));
 }
 

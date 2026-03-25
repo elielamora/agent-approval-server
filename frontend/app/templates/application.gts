@@ -16,7 +16,7 @@ export default class ApplicationTemplate extends Component {
   constructor(owner: Owner, args: object) {
     super(owner, args);
     void this.approvalQueue.start();
-    document.addEventListener('visibilitychange', () => {
+    const reportVisibility = () => {
       void fetch('/window-activity', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -25,7 +25,9 @@ export default class ApplicationTemplate extends Component {
           origin: window.location.origin,
         }),
       });
-    });
+    };
+    document.addEventListener('visibilitychange', reportVisibility);
+    reportVisibility();
   }
 
   get host() {
