@@ -212,49 +212,6 @@ async function checkHooksConfigured(): Promise<void> {
   }
 }
 
-async function runInstallSwiftbar(): Promise<void> {
-  let pluginsDir: string;
-  try {
-    const result = await Bun.$`defaults read com.ameba.SwiftBar PluginDirectory`.quiet();
-    pluginsDir = result.stdout.toString().trim();
-  } catch {
-    console.error(
-      "Error: SwiftBar plugins directory not found.\n" +
-        "Is SwiftBar installed? Set a plugins folder in SwiftBar → Preferences → General.",
-    );
-    process.exit(1);
-  }
-
-  const scriptName = "claude-approval.5s.sh";
-
-  // Remove any previously installed versions with different refresh intervals,
-  // migrating .vars.json (user settings) to the new script name if present.
-  const newVarsPath = join(pluginsDir, scriptName.replace(/\.sh$/, ".vars.json"));
-  const existing = await Array.fromAsync(
-    new Bun.Glob("claude-approval.*.sh").scan(pluginsDir),
-  );
-  for (const old of existing) {
-    if (old !== scriptName) {
-      const oldVarsPath = join(pluginsDir, old.replace(/\.sh$/, ".vars.json"));
-      const oldVars = Bun.file(oldVarsPath);
-      if ((await oldVars.exists()) && !(await Bun.file(newVarsPath).exists())) {
-        await Bun.write(newVarsPath, oldVars);
-        console.log(`✓ Migrated settings to ${scriptName.replace(/\.sh$/, ".vars.json")}`);
-      }
-      await Bun.$`rm -f ${join(pluginsDir, old)} ${oldVarsPath}`.quiet();
-      console.log(`✓ Removed old plugin: ${old}`);
-    }
-  }
-
-  const dest = join(pluginsDir, scriptName);
-  const src = Bun.file(new URL(`../swiftbar/${scriptName}`, import.meta.url));
-  await Bun.write(dest, await src.text());
-  await Bun.$`chmod +x ${dest}`.quiet();
-  console.log(`✓ SwiftBar plugin installed to ${dest}`);
-  console.log(
-    "\nRefresh SwiftBar plugins to activate (right-click the SwiftBar icon → Refresh All).",
-  );
-}
 
 async function runServe(): Promise<void> {
   await checkHooksConfigured();
@@ -288,7 +245,6 @@ function printHelp(): void {
 Commands:
   serve             Start the server (used by brew services)
   install-hooks     Configure Claude Code hooks in ~/.claude/settings.json
-  install-swiftbar  Install the SwiftBar plugin
   uninstall         Remove Claude Code hooks
   status            Show server status
   logs              Tail server logs`);
@@ -306,9 +262,6 @@ if (import.meta.main) {
       break;
     case "install-hooks":
       await runInstallHooks();
-      break;
-    case "install-swiftbar":
-      await runInstallSwiftbar();
       break;
     case "uninstall":
       await runUninstall();

@@ -9,10 +9,12 @@ This is a Claude Code approval server. It intercepts Claude's `PermissionRequest
 
 **Files:**
 
-- `index.ts` — Bun HTTP server (all state is in-memory; no database); serves `frontend/dist/` in dev, embedded bundle in binary
+- `src/index.ts` — Bun HTTP server (all state is in-memory; no database); serves `frontend/dist/` in dev, embedded bundle in binary
+- `src/cli.ts` — CLI entry point; `serve` subcommand starts the server (used by `brew services`)
+- `src/routes.ts` — HTTP route handlers
+- `src/swiftbar.ts` — SwiftBar ephemeral plugin integration; called by `index.ts` on startup; gracefully skipped if SwiftBar is not installed
 - `frontend/` — Ember 6 + Embroider + Vite app (GTS strict mode); built with `pnpm --dir frontend build`
 - `hook-shim.sh` — Bash shim invoked by Claude Code hooks; enriches payload with terminal env vars and forwards to the server via `curl`
-- `cli.ts` — CLI entry point; `serve` subcommand starts the server (used by `brew services`)
 - `scripts/embed-frontend.ts` — run after `vite build`; generates `frontend-bundle.generated.ts` so `bun build --compile` embeds all frontend assets
 
 **External runtime dependencies** (not in package.json):
@@ -23,8 +25,8 @@ This is a Claude Code approval server. It intercepts Claude's `PermissionRequest
 
 **Running:**
 
-- Dev (both servers): `bun run dev` — starts Bun API on `:4759` and Vite on `:5173` (proxy to Bun) via concurrently
-- Dev (API only): `bun --hot index.ts`
+- Dev (both servers): `bun run dev` — starts Bun API on `:4759` and Vite on `:4200` (proxy to Bun) via concurrently
+- Dev (API only): `bun --hot src/index.ts`
 - Dev (frontend only): `pnpm --dir frontend start`
 - Production: managed via `brew services`; logs go to `/tmp/claude-approval.log`
 
@@ -120,7 +122,7 @@ The frontend is an Ember 6 app in `frontend/` using Embroider + Vite and GTS str
 
 ```sh
 pnpm --dir frontend install   # install deps
-pnpm --dir frontend start     # Vite dev server at :5173
+pnpm --dir frontend start     # Vite dev server at :4200
 pnpm --dir frontend build     # production build → frontend/dist/
 ```
 

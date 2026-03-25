@@ -12,6 +12,7 @@ import {
   logRemoval,
   readSessionName,
 } from "./utils";
+import { notifySwiftBar, recordWindowActivity } from "./swiftbar";
 
 function focusTerminal(entry: PendingEntry) {
   const script = buildFocusScript(entry.payload);
@@ -51,6 +52,7 @@ export function createRoutes(
 
     "/queue": {
       GET() {
+        recordWindowActivity(pending.size);
         const items = [...pending.entries()].map(
           ([id, { payload, enqueuedAt, explanation, sessionName }]) => ({
             id,
@@ -75,6 +77,7 @@ export function createRoutes(
         const body = (await req.json()) as { decision: string; message?: string };
         logRemoval(id, `web-ui:${body.decision}`, entry);
         pending.delete(id);
+        notifySwiftBar(pending.size);
         entry.resolve(body.decision === "allow" ? "allow" : (body.message ?? body.decision));
         return Response.json({ ok: true });
       },
@@ -89,6 +92,7 @@ export function createRoutes(
         }
         logRemoval(id, "web-ui:dismiss", entry);
         pending.delete(id);
+        notifySwiftBar(pending.size);
         entry.resolve("dismiss");
         return Response.json({ ok: true });
       },
@@ -119,6 +123,7 @@ export function createRoutes(
           ) {
             logRemoval(id, "post-tool-use", entry);
             pending.delete(id);
+            notifySwiftBar(pending.size);
             entry.resolve("allow");
             break;
           }
@@ -195,13 +200,16 @@ export function createRoutes(
         }
         console.log(`[stop] session=${sessionId}`);
         // Clear any pending entries for this session (e.g. last tool was CLI-denied)
+        let removedAny = false;
         for (const [pendingId, entry] of pending) {
           if (entry.payload.session_id === sessionId) {
             logRemoval(pendingId, "session-idle", entry);
             pending.delete(pendingId);
             entry.resolve("deny");
+            removedAny = true;
           }
         }
+        if (removedAny) notifySwiftBar(pending.size);
         return Response.json({ ok: true });
       },
     },
@@ -326,6 +334,7 @@ export function createRoutes(
           enqueuedAt: Date.now(),
         };
         pending.set(id, entry);
+        notifySwiftBar(pending.size);
         const transcriptPath =
           typeof payload.transcript_path === "string" ? payload.transcript_path : undefined;
         if (transcriptPath) {
@@ -349,6 +358,7 @@ export function createRoutes(
           if (entry) {
             logRemoval(id, "auto-deny-timeout", entry);
             pending.delete(id);
+            notifySwiftBar(pending.size);
             resolveDecision("deny");
           }
         }, AUTO_DENY_TIMEOUT_MS);
@@ -387,6 +397,7 @@ export function createRoutes(
             if (entry) {
               logRemoval(id, "stream-cancel", entry);
               pending.delete(id);
+              notifySwiftBar(pending.size);
               resolveDecision("deny");
             }
           },

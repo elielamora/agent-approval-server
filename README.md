@@ -67,24 +67,15 @@ brew services restart claude-approval-server
 
 ## SwiftBar integration (optional)
 
-[SwiftBar](https://swiftbar.app) is a macOS menu bar app that runs scripts on a schedule. The integration shows a badge with the number of pending approvals in your menu bar and opens the web UI in a persistent webview when clicked.
+[SwiftBar](https://swiftbar.app) is a macOS menu bar app that runs scripts on a schedule. The integration shows a badge with the number of pending approvals in your menu bar and opens the web UI in a webview when clicked.
 
-**Requirements:** SwiftBar 2.1.0+ (for the configurable port variable)
-
-```sh
-claude-approval-server install-swiftbar
-```
-
-Then refresh SwiftBar plugins (right-click the SwiftBar icon → Refresh All Plugins).
-
-The plugin polls `/health` every 30 seconds and shows a badge when approvals are pending. The server port defaults to `4759` and can be changed in SwiftBar → Preferences → Code Plugins → Claude Approval → Port.
+SwiftBar integration is automatic — if SwiftBar is installed, the server registers an ephemeral menu bar plugin on startup. No manual install step required. The plugin clears itself when the server shuts down.
 
 ## Commands
 
 ```
 claude-approval-server serve             Start the server (used by brew services)
 claude-approval-server install-hooks     Configure Claude Code hooks in ~/.claude/settings.json (recovery)
-claude-approval-server install-swiftbar  Install the SwiftBar menu bar plugin
 claude-approval-server uninstall         Remove Claude Code hooks
 claude-approval-server status            Show server status
 claude-approval-server logs              Tail server logs
@@ -103,7 +94,7 @@ claude-approval-server logs              Tail server logs
 bun run dev
 ```
 
-Starts the Bun API server on `:4759` and the Vite dev server on `:5173` (proxies API calls to Bun). Open http://localhost:5173 for hot-module reload during development.
+Starts the Bun API server on `:4759` and the Vite dev server on `:4200` (proxies API calls to Bun). Open http://localhost:4200 for hot-module reload during development.
 
 To run the API server alone (e.g. when testing a production build):
 

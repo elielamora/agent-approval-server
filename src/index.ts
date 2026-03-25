@@ -2,6 +2,7 @@ import { createRoutes } from "./routes";
 import { pendingRequests, idleSessions, payloadLog, IDLE_SESSION_TTL_MS } from "./state";
 import { settings } from "./settings";
 import { logRemoval } from "./utils";
+import { initSwiftBar, cleanupSwiftBar } from "./swiftbar";
 
 // In a compiled binary the frontend is embedded as base64 in this module.
 // In dev (`bun --hot index.ts`) the file won't exist and we fall back to disk.
@@ -44,6 +45,8 @@ Bun.serve({
 
 console.log(`Approval server listening on http://localhost:${PORT}`);
 
+void initSwiftBar(PORT);
+
 setInterval(() => {
   const cutoff = Date.now() - IDLE_SESSION_TTL_MS;
   for (const [id, session] of idleSessions) {
@@ -61,6 +64,7 @@ function shutdown(signal: string) {
     pendingRequests.delete(id);
     entry.resolve("deny");
   }
+  cleanupSwiftBar();
   process.exit(0);
 }
 process.on("SIGTERM", () => shutdown("SIGTERM"));
