@@ -580,6 +580,20 @@ module('parseGitCommit', function () {
     assert.ok(result!.preamble.includes('commit -m "…"'));
   });
 
+  // Indented format as produced by the CLAUDE.md commit template
+  const INDENTED = `bun scripts/embed-frontend.ts && git commit -m "$(cat <<'EOF'\n   fix(ui): animate cards\n\n   Two paragraphs of body.\n\n   Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>\n   EOF\n   )"`;
+
+  test('matches CLAUDE.md indented heredoc format', function (assert) {
+    const result = parseGitCommit(INDENTED);
+    assert.ok(result, 'should match');
+    assert.strictEqual(result!.subject, 'fix(ui): animate cards');
+    assert.strictEqual(result!.body, 'Two paragraphs of body.');
+    assert.deepEqual(result!.trailers, [
+      'Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>',
+    ]);
+    assert.ok(result!.preamble.includes('git commit -m "…"'));
+  });
+
   test('body containing << heredoc syntax is still detected', function (assert) {
     const cmd =
       `git add ui-utils.ts ui-utils.test.ts ui.html \\\n` +
