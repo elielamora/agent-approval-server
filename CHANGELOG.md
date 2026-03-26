@@ -1,5 +1,35 @@
 # Changelog
 
+## [1.2.0](https://github.com/wagenet/claude-approval-server/compare/v1.1.0...v1.2.0) (2026-03-26)
+
+
+### Features
+
+* **mobile:** connection indicator, snooze to desktop, hide focus on mobile ([ec9f43d](https://github.com/wagenet/claude-approval-server/commit/ec9f43d864fa49636e8c9cea57a3d292cecdca7f))
+* **mobile:** connection indicator, snooze to desktop, hide focus on mobile ([1358852](https://github.com/wagenet/claude-approval-server/commit/1358852eb9d9967e2ec3590bec967a43bc25de30))
+* **mobile:** snooze-to-desktop for idle sessions ([17925cf](https://github.com/wagenet/claude-approval-server/commit/17925cfbc02f5241803c944a6084762a4165f64e))
+* **swiftbar:** include idle sessions in badge count ([599665d](https://github.com/wagenet/claude-approval-server/commit/599665d1ebb5a073251d9543d43c03a1bf700ef6))
+* **swiftbar:** replace polling plugin with server-driven ephemeral plugin ([baaa7ba](https://github.com/wagenet/claude-approval-server/commit/baaa7ba7979a2e3a84e95c9aec60bce285e65a3e))
+* **swiftbar:** use frontend origin for SwiftBar webview URL ([a1b4426](https://github.com/wagenet/claude-approval-server/commit/a1b44265663babee51e8770650035e4634d92f31))
+* **ui:** animate cards in/out with ember-animated ([c0033f9](https://github.com/wagenet/claude-approval-server/commit/c0033f97a10671182ffd90838e578c15216399c6))
+* **ui:** detect and render gh pr create commands ([a4efddc](https://github.com/wagenet/claude-approval-server/commit/a4efddc29574bed05c26e8b98c529d5c10ad5e11))
+
+
+### Bug Fixes
+
+* fall back to CLI prompt on timeout instead of auto-denying ([ae6df04](https://github.com/wagenet/claude-approval-server/commit/ae6df04d96c1b84c815813d95b4aa5b04ed0df60))
+* **frontend:** move session to top row, timer to meta row ([e5c77f8](https://github.com/wagenet/claude-approval-server/commit/e5c77f80cec339aa72412d22671fc2a09c7e131b))
+* **routes:** preserve parallel tool calls; dismiss stale entries instead of denying ([603ca32](https://github.com/wagenet/claude-approval-server/commit/603ca32e6fc19ac81d418e6852e878c850101e1b))
+* **swiftbar:** log errors from open and trace setEphemeral calls ([602638c](https://github.com/wagenet/claude-approval-server/commit/602638c40ada8ccf0142c23f7bbc0e5015051f31))
+* **swiftbar:** serialize open calls and use -g to prevent focus steal ([f64180f](https://github.com/wagenet/claude-approval-server/commit/f64180f32d91f29a91a1976827394d24372f669e))
+* **swiftbar:** use visibilitychange to suppress badge updates while popup is open ([7193b2a](https://github.com/wagenet/claude-approval-server/commit/7193b2a84b770558e36163b7007e8ec9efecf1d7))
+* **tests:** alias ember-cli-deprecation-workflow to its browser entry point ([b98bdcf](https://github.com/wagenet/claude-approval-server/commit/b98bdcfea781decb1fd746162deb954c385981d8))
+* **ui:** constrain idle badge width to content ([9a717a0](https://github.com/wagenet/claude-approval-server/commit/9a717a0737b55dc4f177a8ee43929286db83835d))
+* **ui:** dismiss idle session on focus ([c3b4343](https://github.com/wagenet/claude-approval-server/commit/c3b43433a6e6520e110118ebfd0422c3c1672cf4))
+* **ui:** fix parseInterpreterCall false positives and truncated bodies ([f13f436](https://github.com/wagenet/claude-approval-server/commit/f13f4361826ddec93d176711bbdf7d50bfe8c2c3))
+* **ui:** make commit-body links readable on dark background ([d1e15fb](https://github.com/wagenet/claude-approval-server/commit/d1e15fbcca4769a89b4d4abf0e884e40236933da))
+* **ui:** skip AnimatedEach re-render when queue items unchanged ([bbb464b](https://github.com/wagenet/claude-approval-server/commit/bbb464b8b50c1ee48bb527d95b1d93df926c7bdc))
+
 ## [1.1.0](https://github.com/wagenet/claude-approval-server/compare/v1.0.0...v1.1.0) (2026-03-24)
 
 
