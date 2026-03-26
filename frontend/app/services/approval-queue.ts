@@ -2,7 +2,7 @@ import Service, { service } from '@ember/service';
 import { tracked } from '@glimmer/tracking';
 import type { QueueItem, IdleSession } from '../utils/ui-types';
 import type AppSettingsService from './app-settings';
-import { shortCwd } from '../utils/ui-utils';
+import { shortCwd, SESSION_COLORS } from '../utils/ui-utils';
 
 export default class ApprovalQueueService extends Service {
   @service declare appSettings: AppSettingsService;
@@ -17,8 +17,21 @@ export default class ApprovalQueueService extends Service {
   }
 
   readonly notifiedIds = new Set<string>();
+  readonly #sessionColors = new Map<string, string>();
+  #colorIndex = 0;
   #interval?: ReturnType<typeof setInterval>;
   #failCount = 0;
+
+  sessionColor(sessionId: string): string {
+    if (!this.#sessionColors.has(sessionId)) {
+      this.#sessionColors.set(
+        sessionId,
+        SESSION_COLORS[this.#colorIndex % SESSION_COLORS.length]!
+      );
+      this.#colorIndex++;
+    }
+    return this.#sessionColors.get(sessionId)!;
+  }
 
   async start() {
     if (

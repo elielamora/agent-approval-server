@@ -1,5 +1,16 @@
 import type { TerminalInfo } from './ui-types';
 
+export const SESSION_COLORS = [
+  '#a78bfa', // violet
+  '#38bdf8', // sky
+  '#34d399', // emerald
+  '#fb923c', // orange
+  '#f472b6', // pink
+  '#facc15', // amber
+  '#f87171', // rose
+  '#4ade80', // green
+];
+
 export function asString(val: unknown, fallback = ''): string {
   return typeof val === 'string' ? val : fallback;
 }
