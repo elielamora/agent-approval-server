@@ -58,15 +58,25 @@ export function createRoutes(
     "/queue": {
       GET() {
         const items = [...pending.entries()].map(
-          ([id, { payload, enqueuedAt, explanation, sessionName }]) => ({
+          ([id, { payload, enqueuedAt, explanation, sessionName, snoozedToDesktop }]) => ({
             id,
             enqueuedAt,
             explanation,
+            snoozedToDesktop,
             ...payload,
             sessionName,
           }),
         );
         return Response.json(items);
+      },
+    },
+
+    "/snooze/:id": {
+      POST(req: Request & { params: { id: string } }) {
+        const entry = pending.get(req.params.id);
+        if (!entry) return Response.json({ error: "Not found" }, { status: 404 });
+        entry.snoozedToDesktop = true;
+        return Response.json({ ok: true });
       },
     },
 

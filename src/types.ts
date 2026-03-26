@@ -5,6 +5,7 @@ export interface PendingEntry {
   explanation?: string;
   explaining?: boolean;
   sessionName?: string;
+  snoozedToDesktop?: boolean;
 }
 
 export interface IdleSession {

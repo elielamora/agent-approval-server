@@ -129,6 +129,33 @@ h1 .dot {
   gap: 1rem;
 }
 
+#for-review {
+  margin-top: 2rem;
+}
+
+/* Hide "For Review" section on touch/mobile devices — items snoozed to desktop */
+@media (hover: none) {
+  #for-review {
+    display: none;
+  }
+}
+
+.for-review-heading {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+}
+
+#for-review-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  opacity: 0.75;
+}
+
 #idle-list {
   display: flex;
   flex-direction: column;
@@ -654,6 +681,32 @@ button:active {
   border-color: var(--text-dim);
 }
 
+.btn-snooze {
+  background: transparent;
+  color: var(--text-timer);
+  border: 1px solid var(--border);
+  font-size: 0.78rem;
+  padding: 0.45rem 0.75rem;
+}
+
+.btn-snooze:hover {
+  color: var(--text-muted);
+  border-color: var(--text-dim);
+}
+
+/* Focus button: desktop-only; snooze button: mobile-only */
+@media (hover: hover) {
+  .focus-mobile-only {
+    display: none;
+  }
+}
+
+@media (hover: none) {
+  .focus-desktop-only {
+    display: none;
+  }
+}
+
 .dot-idle {
   background: var(--text-timer);
   animation: none;
@@ -782,6 +835,21 @@ button:active {
   font-size: 0.75rem;
   color: var(--text-dim);
   line-height: 1.4;
+}
+
+#offline-banner {
+  display: none;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #fff;
+  background: #b45309;
+  border-radius: 6px;
+  padding: 0.5rem 0.875rem;
+  margin-bottom: 1.25rem;
+}
+
+#offline-banner.visible {
+  display: block;
 }
 
 #notif-banner {

@@ -29,21 +29,29 @@ export default class ApprovalQueue extends Component {
 
   cardTransition = cardTransition;
 
-  get items() {
-    return this.approvalQueue.items;
+  get normalItems() {
+    return this.approvalQueue.items.filter((i) => !i.snoozedToDesktop);
   }
 
-  get hasItems() {
-    return this.items.length > 0;
+  get snoozedItems() {
+    return this.approvalQueue.items.filter((i) => i.snoozedToDesktop);
+  }
+
+  get hasNormalItems() {
+    return this.normalItems.length > 0;
+  }
+
+  get hasSnoozedItems() {
+    return this.snoozedItems.length > 0;
   }
 
   <template>
     <div class="column">
       <h1><span class="dot"></span>Approval Queue</h1>
-      {{#if this.hasItems}}
+      {{#if this.hasNormalItems}}
         <div id="queue">
           {{#AnimatedEach
-            this.items key="id" use=this.cardTransition duration=200
+            this.normalItems key="id" use=this.cardTransition duration=200
             as |item|
           }}
             {{#if (eq item.tool_name "AskUserQuestion")}}
@@ -55,6 +63,24 @@ export default class ApprovalQueue extends Component {
         </div>
       {{else}}
         <div id="idle">No pending approvals</div>
+      {{/if}}
+
+      {{#if this.hasSnoozedItems}}
+        <div id="for-review">
+          <h2 class="for-review-heading">For Review</h2>
+          <div id="for-review-list">
+            {{#AnimatedEach
+              this.snoozedItems key="id" use=this.cardTransition duration=200
+              as |item|
+            }}
+              {{#if (eq item.tool_name "AskUserQuestion")}}
+                <AskUserQuestionCard @item={{item}} />
+              {{else}}
+                <QueueCard @item={{item}} />
+              {{/if}}
+            {{/AnimatedEach}}
+          </div>
+        </div>
       {{/if}}
     </div>
   </template>
