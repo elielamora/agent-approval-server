@@ -113,6 +113,10 @@ export default class QueueCard extends Component<Sig> {
     void fetch(`/focus/${this.item.id}`, { method: 'POST' });
   };
 
+  snooze = async () => {
+    await this.approvalQueue.snooze(this.item.id);
+  };
+
   dismiss = async () => {
     await this.approvalQueue.dismissQueueItem(this.item.id);
   };
@@ -175,10 +179,21 @@ export default class QueueCard extends Component<Sig> {
           </button>
         {{/unless}}
         {{#if this.hasFocusTarget}}
-          <button type="button" class="btn-focus" {{on "click" this.focus}}>
+          <button
+            type="button"
+            class="btn-focus focus-desktop-only"
+            {{on "click" this.focus}}
+          >
             <TerminalIcon @terminalInfo={{@item.terminal_info}} />Focus
           </button>
         {{/if}}
+        <button
+          type="button"
+          class="btn-snooze focus-mobile-only"
+          {{on "click" this.snooze}}
+        >
+          Review on computer
+        </button>
       </div>
     </div>
   </template>

@@ -58,15 +58,25 @@ export function createRoutes(
     "/queue": {
       GET() {
         const items = [...pending.entries()].map(
-          ([id, { payload, enqueuedAt, explanation, sessionName }]) => ({
+          ([id, { payload, enqueuedAt, explanation, sessionName, snoozedToDesktop }]) => ({
             id,
             enqueuedAt,
             explanation,
+            snoozedToDesktop,
             ...payload,
             sessionName,
           }),
         );
         return Response.json(items);
+      },
+    },
+
+    "/snooze/:id": {
+      POST(req: Request & { params: { id: string } }) {
+        const entry = pending.get(req.params.id);
+        if (!entry) return Response.json({ error: "Not found" }, { status: 404 });
+        entry.snoozedToDesktop = true;
+        return Response.json({ ok: true });
       },
     },
 
@@ -231,16 +241,26 @@ export function createRoutes(
     "/idle": {
       GET() {
         const items = [...idleSessions.values()].map(
-          ({ sessionId, idleSince, transcriptPath, payload, sessionName }) => ({
+          ({ sessionId, idleSince, transcriptPath, payload, sessionName, snoozedToDesktop }) => ({
             sessionId,
             idleSince,
             transcriptPath,
             terminal_info: payload.terminal_info,
             cwd: payload.cwd,
             sessionName,
+            snoozedToDesktop,
           }),
         );
         return Response.json(items);
+      },
+    },
+
+    "/snooze-idle/:id": {
+      POST(req: Request & { params: { id: string } }) {
+        const session = idleSessions.get(req.params.id);
+        if (!session) return Response.json({ error: "Not found" }, { status: 404 });
+        session.snoozedToDesktop = true;
+        return Response.json({ ok: true });
       },
     },
 

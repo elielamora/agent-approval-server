@@ -10,6 +10,7 @@ export default class ApprovalQueueService extends Service {
   @tracked items: QueueItem[] = [];
   @tracked idleSessions: IdleSession[] = [];
   @tracked planItem: QueueItem | null = null;
+  @tracked isOffline = false;
 
   get autoDenyMs() {
     return this.appSettings.autoDenyMs;
@@ -17,6 +18,7 @@ export default class ApprovalQueueService extends Service {
 
   readonly notifiedIds = new Set<string>();
   #interval?: ReturnType<typeof setInterval>;
+  #failCount = 0;
 
   async start() {
     if (
@@ -38,6 +40,16 @@ export default class ApprovalQueueService extends Service {
       fetch('/idle').then((r) => r.json()) as Promise<IdleSession[]>,
     ]);
 
+    const bothFailed =
+      itemsRes.status === 'rejected' && sessionsRes.status === 'rejected';
+    if (bothFailed) {
+      this.#failCount++;
+      if (this.#failCount >= 2) this.isOffline = true;
+    } else {
+      this.#failCount = 0;
+      this.isOffline = false;
+    }
+
     if (itemsRes.status === 'fulfilled') {
       const items = itemsRes.value;
       for (const item of items) {
@@ -52,12 +64,14 @@ export default class ApprovalQueueService extends Service {
           );
         }
       }
-      const sameIds =
+      const sameState =
         this.items.length === items.length &&
         this.items.every(
-          (item: QueueItem, i: number) => item.id === items[i]?.id
+          (item: QueueItem, i: number) =>
+            item.id === items[i]?.id &&
+            item.snoozedToDesktop === items[i]?.snoozedToDesktop
         );
-      if (!sameIds) {
+      if (!sameState) {
         this.items = items;
       }
     }
@@ -73,7 +87,9 @@ export default class ApprovalQueueService extends Service {
       const sameSessionIds =
         this.idleSessions.length === sessions.length &&
         this.idleSessions.every(
-          (s: IdleSession, i: number) => s.sessionId === sessions[i]?.sessionId
+          (s: IdleSession, i: number) =>
+            s.sessionId === sessions[i]?.sessionId &&
+            s.snoozedToDesktop === sessions[i]?.snoozedToDesktop
         );
       if (!sameSessionIds) {
         this.idleSessions = sessions;
@@ -112,10 +128,24 @@ export default class ApprovalQueueService extends Service {
     this.items = this.items.filter((i) => i.id !== id);
   }
 
+  async snooze(id: string) {
+    await fetch(`/snooze/${id}`, { method: 'POST' });
+    this.items = this.items.map((i) =>
+      i.id === id ? { ...i, snoozedToDesktop: true } : i
+    );
+  }
+
   async dismissIdle(sessionId: string) {
     await fetch(`/idle/${sessionId}`, { method: 'DELETE' });
     this.idleSessions = this.idleSessions.filter(
       (s) => s.sessionId !== sessionId
+    );
+  }
+
+  async snoozeIdle(sessionId: string) {
+    await fetch(`/snooze-idle/${sessionId}`, { method: 'POST' });
+    this.idleSessions = this.idleSessions.map((s) =>
+      s.sessionId === sessionId ? { ...s, snoozedToDesktop: true } : s
     );
   }
 

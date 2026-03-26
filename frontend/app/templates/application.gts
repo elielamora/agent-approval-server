@@ -46,6 +46,11 @@ export default class ApplicationTemplate extends Component {
   };
 
   <template>
+    {{#if this.approvalQueue.isOffline}}
+      <div id="offline-banner" class="visible">
+        Connection lost — retrying…
+      </div>
+    {{/if}}
     {{#if this.notifDenied}}
       <div id="notif-banner" class="visible">
         Notifications are blocked for this page. Check your browser's

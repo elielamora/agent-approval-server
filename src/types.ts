@@ -5,6 +5,7 @@ export interface PendingEntry {
   explanation?: string;
   explaining?: boolean;
   sessionName?: string;
+  snoozedToDesktop?: boolean;
 }
 
 export interface IdleSession {
@@ -13,6 +14,7 @@ export interface IdleSession {
   transcriptPath?: string;
   payload: Record<string, unknown>;
   sessionName?: string;
+  snoozedToDesktop?: boolean;
 }
 
 export interface TerminalInfo {
