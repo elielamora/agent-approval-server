@@ -5,6 +5,7 @@ export interface IdleSession {
   terminal_info?: TerminalInfo;
   cwd?: string;
   sessionName?: string;
+  snoozedToDesktop?: boolean;
 }
 
 export interface TerminalInfo {

@@ -87,7 +87,9 @@ export default class ApprovalQueueService extends Service {
       const sameSessionIds =
         this.idleSessions.length === sessions.length &&
         this.idleSessions.every(
-          (s: IdleSession, i: number) => s.sessionId === sessions[i]?.sessionId
+          (s: IdleSession, i: number) =>
+            s.sessionId === sessions[i]?.sessionId &&
+            s.snoozedToDesktop === sessions[i]?.snoozedToDesktop
         );
       if (!sameSessionIds) {
         this.idleSessions = sessions;
@@ -137,6 +139,13 @@ export default class ApprovalQueueService extends Service {
     await fetch(`/idle/${sessionId}`, { method: 'DELETE' });
     this.idleSessions = this.idleSessions.filter(
       (s) => s.sessionId !== sessionId
+    );
+  }
+
+  async snoozeIdle(sessionId: string) {
+    await fetch(`/snooze-idle/${sessionId}`, { method: 'POST' });
+    this.idleSessions = this.idleSessions.map((s) =>
+      s.sessionId === sessionId ? { ...s, snoozedToDesktop: true } : s
     );
   }
 

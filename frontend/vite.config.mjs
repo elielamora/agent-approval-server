@@ -29,7 +29,7 @@ export default defineConfig({
   ],
   server: {
     proxy: {
-      '^/(queue|idle|pending|decide|dismiss|snooze|focus|focus-idle|post-tool-use|stop|explain|log|config|health|window-activity)':
+      '^/(queue|idle|pending|decide|dismiss|snooze|snooze-idle|focus|focus-idle|post-tool-use|stop|explain|log|config|health|window-activity)':
         'http://localhost:4759',
     },
   },

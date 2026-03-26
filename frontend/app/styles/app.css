@@ -780,6 +780,23 @@ button:active {
   border-color: var(--text-dim);
 }
 
+#for-review-idle {
+  margin-top: 2rem;
+}
+
+@media (hover: none) {
+  #for-review-idle {
+    display: none;
+  }
+}
+
+#for-review-idle-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  opacity: 0.75;
+}
+
 #idle-empty {
   text-align: center;
   color: var(--text-dim);

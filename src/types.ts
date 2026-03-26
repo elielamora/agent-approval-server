@@ -14,6 +14,7 @@ export interface IdleSession {
   transcriptPath?: string;
   payload: Record<string, unknown>;
   sessionName?: string;
+  snoozedToDesktop?: boolean;
 }
 
 export interface TerminalInfo {

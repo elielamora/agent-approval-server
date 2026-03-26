@@ -27,21 +27,32 @@ export default class IdleSessions extends Component {
 
   cardTransition = cardTransition;
 
-  get sessions() {
-    return this.approvalQueue.idleSessions;
+  get normalSessions() {
+    return this.approvalQueue.idleSessions.filter((s) => !s.snoozedToDesktop);
   }
 
-  get hasSessions() {
-    return this.sessions.length > 0;
+  get snoozedSessions() {
+    return this.approvalQueue.idleSessions.filter((s) => s.snoozedToDesktop);
+  }
+
+  get hasNormalSessions() {
+    return this.normalSessions.length > 0;
+  }
+
+  get hasSnoozedSessions() {
+    return this.snoozedSessions.length > 0;
   }
 
   <template>
     <div class="column">
       <h1><span class="dot dot-idle"></span>Idle Sessions</h1>
-      {{#if this.hasSessions}}
+      {{#if this.hasNormalSessions}}
         <div id="idle-list">
           {{#AnimatedEach
-            this.sessions key="sessionId" use=this.cardTransition duration=200
+            this.normalSessions
+            key="sessionId"
+            use=this.cardTransition
+            duration=200
             as |session|
           }}
             <IdleSessionCard @session={{session}} />
@@ -49,6 +60,23 @@ export default class IdleSessions extends Component {
         </div>
       {{else}}
         <div id="idle-empty">No idle sessions</div>
+      {{/if}}
+
+      {{#if this.hasSnoozedSessions}}
+        <div id="for-review-idle">
+          <h2 class="for-review-heading">For Review</h2>
+          <div id="for-review-idle-list">
+            {{#AnimatedEach
+              this.snoozedSessions
+              key="sessionId"
+              use=this.cardTransition
+              duration=200
+              as |session|
+            }}
+              <IdleSessionCard @session={{session}} />
+            {{/AnimatedEach}}
+          </div>
+        </div>
       {{/if}}
     </div>
   </template>

@@ -93,6 +93,10 @@ export default class IdleSessionCard extends Component<Sig> {
     void this.approvalQueue.dismissIdle(this.session.sessionId);
   };
 
+  snooze = async () => {
+    await this.approvalQueue.snoozeIdle(this.session.sessionId);
+  };
+
   <template>
     <div class="card">
       <div class="card-header">
@@ -123,10 +127,21 @@ export default class IdleSessionCard extends Component<Sig> {
           Dismiss
         </button>
         {{#if this.hasFocusTarget}}
-          <button type="button" class="btn-focus" {{on "click" this.focus}}>
+          <button
+            type="button"
+            class="btn-focus focus-desktop-only"
+            {{on "click" this.focus}}
+          >
             <TerminalIcon @terminalInfo={{this.session.terminal_info}} />Focus
           </button>
         {{/if}}
+        <button
+          type="button"
+          class="btn-snooze focus-mobile-only"
+          {{on "click" this.snooze}}
+        >
+          Review on computer
+        </button>
       </div>
     </div>
   </template>
