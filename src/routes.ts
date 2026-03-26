@@ -2,6 +2,11 @@ import { randomUUID } from "crypto";
 import type { PendingEntry, IdleSession } from "./types";
 import { saveSettings, type Settings } from "./settings";
 import { TIMEOUT_MS, LOG_MAX, type LogEntry } from "./state";
+
+// Entries enqueued within this window are assumed to be parallel tool calls from the same
+// session. We leave them pending rather than auto-cancelling the older one.
+const PARALLEL_WINDOW_MS = 5_000;
+
 import {
   asString,
   stableStringify,
@@ -214,7 +219,7 @@ export function createRoutes(
           if (entry.payload.session_id === sessionId) {
             logRemoval(pendingId, "session-idle", entry);
             pending.delete(pendingId);
-            entry.resolve("deny");
+            entry.resolve("dismiss");
             removedAny = true;
           }
         }
@@ -328,12 +333,15 @@ export function createRoutes(
           typeof payload.session_id === "string" ? payload.session_id : undefined;
         if (incomingSession) {
           idleSessions.delete(incomingSession);
+          const now = Date.now();
           for (const [pendingId, entry] of pending) {
             if (entry.payload.session_id === incomingSession) {
               const isAskQuestion = entry.payload.tool_name === "AskUserQuestion";
+              // If the entry arrived recently, treat it as a parallel tool call and leave it pending.
+              if (!isAskQuestion && now - entry.enqueuedAt < PARALLEL_WINDOW_MS) continue;
               logRemoval(pendingId, isAskQuestion ? "new-session-activity" : "cli-denied", entry);
               pending.delete(pendingId);
-              entry.resolve(isAskQuestion ? "allow" : "deny");
+              entry.resolve(isAskQuestion ? "allow" : "dismiss");
             }
           }
         }

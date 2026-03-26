@@ -177,6 +177,10 @@ describe("POST /pending + POST /decide/:id", () => {
     await Bun.sleep(10);
     expect(pending.size).toBe(1);
 
+    // Backdate enqueuedAt so the entry looks old (beyond the parallel window)
+    const [[, staleEntry]] = [...pending.entries()];
+    staleEntry.enqueuedAt = Date.now() - 10_000;
+
     // Next tool from same session clears the stale Bash entry and adds new one
     const writeRes = fetch(`http://localhost:${server.port}/pending`, {
       method: "POST",
@@ -193,11 +197,9 @@ describe("POST /pending + POST /decide/:id", () => {
     const [[, entry]] = [...pending.entries()];
     expect(entry.payload.tool_name).toBe("Write");
 
-    // Stale Bash entry was resolved with deny
-    const bashBody = (await bashRes.then((r) => r.json())) as {
-      hookSpecificOutput: { decision: { behavior: string } };
-    };
-    expect(bashBody.hookSpecificOutput.decision.behavior).toBe("deny");
+    // Stale Bash entry was dismissed (empty body — Claude falls back to CLI prompt)
+    const bashResponse = await bashRes;
+    expect(await bashResponse.text()).toBe("");
 
     // Resolve the Write entry to clean up
     const writeId = pending.keys().next().value!;
@@ -207,6 +209,41 @@ describe("POST /pending + POST /decide/:id", () => {
       body: JSON.stringify({ decision: "allow" }),
     });
     await writeRes;
+  });
+
+  test("does not auto-cancel parallel tool calls from same session", async () => {
+    // Two requests arrive close together — both should stay pending
+    const res1 = fetch(`http://localhost:${server.port}/pending`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        tool_name: "Read",
+        tool_input: { path: "/a" },
+        session_id: "sessPar",
+      }),
+    });
+    const res2 = fetch(`http://localhost:${server.port}/pending`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        tool_name: "Read",
+        tool_input: { path: "/b" },
+        session_id: "sessPar",
+      }),
+    });
+
+    await Bun.sleep(20);
+    expect(pending.size).toBe(2);
+
+    // Resolve both to clean up
+    for (const id of pending.keys()) {
+      await fetch(`http://localhost:${server.port}/decide/${id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ decision: "allow" }),
+      });
+    }
+    await Promise.all([res1, res2]);
   });
 
   test("forwards custom deny message to hook response", async () => {
@@ -280,11 +317,9 @@ describe("POST /stop", () => {
     expect(pending.size).toBe(0);
     expect(idle.has("sessStop")).toBe(true);
 
-    // Stale pending entry was resolved with deny
-    const body = (await pendingRes.then((r) => r.json())) as {
-      hookSpecificOutput: { decision: { behavior: string } };
-    };
-    expect(body.hookSpecificOutput.decision.behavior).toBe("deny");
+    // Pending entry was dismissed (empty body — Claude falls back to CLI prompt)
+    const response = await pendingRes;
+    expect(await response.text()).toBe("");
   });
 
   test("does not clear pending entries from other sessions", async () => {
