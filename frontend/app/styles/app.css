@@ -165,6 +165,7 @@ h1 .dot {
 .card {
   background: var(--card-bg);
   border: 1px solid var(--border);
+  border-left: 3px solid var(--session-color, var(--border));
   border-radius: 10px;
   padding: 1.25rem;
 }
@@ -403,7 +404,7 @@ h1 .dot {
 
 .session {
   font-size: 0.72rem;
-  color: var(--text-dim);
+  color: var(--session-color, var(--text-dim));
   font-family: monospace;
   min-width: 0;
   overflow: hidden;

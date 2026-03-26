@@ -5,6 +5,7 @@ import { on } from '@ember/modifier';
 import CodeBlock from './code-block';
 import CountdownTimer from './countdown-timer';
 import TerminalIcon from './terminal-icon';
+import { htmlSafe } from '@ember/template';
 import { formatToolName, badgeClass, shortCwd } from '../utils/ui-utils';
 import type { QueueItem } from '../utils/ui-types';
 import type ApprovalQueueService from '../services/approval-queue';
@@ -54,6 +55,15 @@ export default class QueueCard extends Component<Sig> {
         ? String(this.item.session_id).slice(0, 8) + '…'
         : '—')
     );
+  }
+
+  get cardStyle() {
+    const id = this.item.session_id;
+    return id
+      ? htmlSafe(
+          `--session-color: ${this.approvalQueue.sessionColor(String(id))}`
+        )
+      : '';
   }
 
   get hasFocusTarget() {
@@ -122,7 +132,7 @@ export default class QueueCard extends Component<Sig> {
   };
 
   <template>
-    <div class={{this.cardClass}}>
+    <div class={{this.cardClass}} style={{this.cardStyle}}>
       <div class="card-header">
         <div class="card-header-top">
           <span class={{this.badgeClass}}>{{this.toolLabel}}</span>

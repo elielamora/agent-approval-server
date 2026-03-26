@@ -58,6 +58,12 @@ export default class IdleSessionCard extends Component<Sig> {
     return this.session.sessionName ?? this.session.sessionId.slice(0, 8) + '…';
   }
 
+  get cardStyle() {
+    return htmlSafe(
+      `--session-color: ${this.approvalQueue.sessionColor(this.session.sessionId)}`
+    );
+  }
+
   get when() {
     return new Date(this.session.idleSince).toLocaleTimeString();
   }
@@ -98,7 +104,7 @@ export default class IdleSessionCard extends Component<Sig> {
   };
 
   <template>
-    <div class="card">
+    <div class="card" style={{this.cardStyle}}>
       <div class="card-header">
         <span class="badge badge-idle">Idle</span>
         {{#if this.cwdShort}}
