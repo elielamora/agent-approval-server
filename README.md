@@ -83,17 +83,29 @@ brew services restart claude-approval-server
 
 SwiftBar integration is automatic — if SwiftBar is installed (v2.0.0+), the server registers an ephemeral menu bar plugin on startup. No manual install step required. The plugin clears itself when the server shuts down.
 
+When you install SwiftBar, you will need to `brew services restart claude-approval-server`.
+
 ## Commands
 
-```
-claude-approval-server serve             Start the server (used by brew services)
-claude-approval-server install-hooks     Configure Claude Code hooks in ~/.claude/settings.json
-claude-approval-server uninstall         Remove Claude Code hooks
-claude-approval-server status            Show server status
-claude-approval-server logs              Tail server logs
+### Install and Uninstall Hooks
+
+See [Hook configuration](#hook-configuration-reference) below to see what hooks will be installed.
+
+```sh
+claude-approval-server install-hooks   # Configure Claude Code hooks in ~/.claude/settings.json
+claude-approval-server uninstall       # Remove Claude Code hooks
 ```
 
-Re-run `install-hooks` if you clear `~/.claude/settings.json` or after upgrading.
+> [!NOTE]
+> Re-run `install-hooks` if you clear `~/.claude/settings.json` or after upgrading.
+
+### Running the Server
+
+```sh
+claude-approval-server serve           # Start the server (used by brew services)
+claude-approval-server status          # Show server status
+claude-approval-server logs            # Tail server logs
+```
 
 ## Logs
 
@@ -102,20 +114,7 @@ Re-run `install-hooks` if you clear `~/.claude/settings.json` or after upgrading
 
 ## Run (dev)
 
-```sh
-bun run dev
-```
-
-Starts the Bun API server on `:4759` and the Vite dev server on `:4200` (proxies API calls to Bun). Open http://localhost:4200 for hot-module reload during development.
-
-To run the API server alone (e.g. when testing a production build):
-
-```sh
-bun --hot index.ts
-```
-
-UI: http://localhost:4759
-Health: http://localhost:4759/health
+See [CONTRIBUTING.md](CONTRIBUTING.md#dev-setup) for dev setup and port configuration.
 
 ## Hook configuration (reference)
 

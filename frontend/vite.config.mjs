@@ -6,6 +6,8 @@ import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+const uiPort = process.env.UI_PORT ? Number(process.env.UI_PORT) : undefined;
+
 export default defineConfig({
   resolve: {
     alias: {
@@ -28,6 +30,7 @@ export default defineConfig({
     }),
   ],
   server: {
+    port: uiPort,
     proxy: {
       '^/(queue|idle|pending|decide|dismiss|snooze|snooze-idle|focus|focus-idle|post-tool-use|stop|explain|log|config|health|window-activity)':
         'http://localhost:4759',

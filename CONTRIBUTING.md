@@ -6,10 +6,32 @@
 bun install                      # install root deps (Bun)
 pnpm --dir frontend install      # install frontend deps
 
-bun run dev                      # API (:4759) + Vite (:5173) together
+bun run dev                      # API (:4759) + Vite UI (:4200) together
+
 bun test                         # server-side tests
 bun run lint && bun run format   # lint + format check
 ```
+
+- UI: http://localhost:4200
+- API Health: http://localhost:4759/health
+
+### Optional port configuration
+
+Set `UI_PORT` to avoid collisions with other local Ember apps that also default to `:4200`:
+
+```sh
+UI_PORT=5100 bun run dev
+```
+
+### API dev
+
+To run the API server alone (e.g. when testing a production build):
+
+```sh
+bun --hot src/index.ts
+```
+
+### Frontend dev
 
 The `frontend/` package uses pnpm. To work on the frontend alone:
 
