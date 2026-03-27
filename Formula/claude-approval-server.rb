@@ -26,20 +26,14 @@ class ClaudeApprovalServer < Formula
     environment_variables HOME: ENV["HOME"]
   end
 
-  def post_install
-    # Automatically configure Claude Code hooks on install and upgrade.
-    # Idempotent — safe to run multiple times.
-    system bin/"claude-approval-server", "install-hooks"
-  end
-
-  def uninstall
-    # Remove Claude Code hooks and shim before the binary is deleted.
-    system bin/"claude-approval-server", "uninstall"
-  end
-
   def caveats
     <<~EOS
-      Claude Code hooks were configured automatically.
+      Run the following to configure Claude Code hooks:
+        claude-approval-server install-hooks
+
+      To remove hooks before uninstalling:
+        claude-approval-server uninstall
+
       Restart Claude Code for hook changes to take effect.
     EOS
   end
