@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "hooks": {
+    "preToolUse": [
+      {
+        "type": "command",
+        "bash": "./scripts/agent-shim.sh copilot pending",
+        "cwd": ".",
+        "timeoutSec": 610
+      }
+    ],
+    "postToolUse": [
+      {
+        "type": "command",
+        "bash": "./scripts/agent-shim.sh copilot post-tool-use",
+        "cwd": ".",
+        "timeoutSec": 5
+      }
+    ],
+    "sessionEnd": [
+      {
+        "type": "command",
+        "bash": "./scripts/agent-shim.sh copilot stop",
+        "cwd": "."
+      }
+    ]
+  }
+}
