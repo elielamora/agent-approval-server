@@ -166,6 +166,35 @@ Note on multi-agent usage
 - For agents that support hooks (Copilot, Gemini), configure their hooks to run the shim (see agent docs). Use `AGENT=<agent>` so the server knows which adapter to use.
 - For agents without configurable hooks, consider using a wrapper script that posts the same JSON payload to `http://localhost:4759/pending` (setting `agent=<name>` in the body or using `AGENT=`) and then proceeds based on the approval response.
 
+Testing locally with Copilot
+
+1. Install dependencies (jq, curl) and ensure Bun is available for server dev.
+2. Start the server (API only):
+
+   PORT=4759 bun --hot src/index.ts
+
+   Or start full dev (API + UI):
+
+   bun run dev
+
+3. Make shims executable:
+
+   chmod +x scripts/agent-shim.sh
+   chmod +x scripts/test-copilot.sh
+
+4. Quick smoke test (no Copilot required):
+
+   ./scripts/test-copilot.sh
+
+5. To exercise the real Copilot CLI, run the CLI from this repository (it will pick up .github/hooks/hooks.json) and trigger a preToolUse event.
+
+6. Confirm adapter list / status:
+
+   curl http://localhost:4759/adapters | jq .
+   curl http://localhost:4759/queue | jq .
+
+
+
 `PermissionRequest` — if the server is unreachable or times out, the agent should fall back to its normal CLI approval prompt (behavior depends on the agent).
 
 `PostToolUse` — fires after each tool runs. If you approved a request from the CLI prompt (bypassing the web UI), this clears the stale pending item from the queue automatically (Claude behavior).
