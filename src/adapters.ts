@@ -81,18 +81,28 @@ const copilotAdapter: Adapter = {
   },
   normalize(raw) {
     const r = raw as Record<string, unknown>;
+    const toolName = asString(r["tool_name"] ?? r["tool"] ?? r["toolName"]);
+    let toolInput: unknown = r["tool_input"] ?? r["input"] ?? r["toolArgs"] ?? r["tool_args"];
+    if (typeof toolInput === "string") {
+      try {
+        toolInput = JSON.parse(toolInput as string);
+      } catch {
+        // keep as string if not JSON
+      }
+    }
     return {
       agent: "copilot",
-      hook_type: asString(r["hookEventName"], "PermissionRequest"),
+      hook_type: asString(r["hookEventName"] ?? r["hook_type"] ?? r["hookType"], "PermissionRequest"),
       session_id: asString(r["session_id"] ?? r["sessionId"] ?? r["session"]),
-      tool_name: asString(r["tool_name"] ?? r["tool"]),
-      tool_input: r["tool_input"] ?? r["input"],
+      tool_name: toolName,
+      tool_input: toolInput,
       terminal_info: (r["terminal_info"] ?? {}) as Record<string, unknown>,
       cwd: asString(r["cwd"] ?? r["working_dir"] ?? r["cwd"]),
       transcript_path: asString(r["transcript_path"]),
       raw_payload: r,
     };
   },
+
   formatDecision(decision: string) {
     // Copilot CLI preToolUse expects: { permissionDecision: "allow"|"deny"|"ask", permissionDecisionReason?: string }
     if (decision === "allow") return { permissionDecision: "allow" };
@@ -111,18 +121,28 @@ const geminiAdapter: Adapter = {
   },
   normalize(raw) {
     const r = raw as Record<string, unknown>;
+    const toolName = asString(r["tool_name"] ?? r["tool"] ?? r["toolName"]);
+    let toolInput: unknown = r["tool_input"] ?? r["input"] ?? r["toolArgs"] ?? r["tool_args"];
+    if (typeof toolInput === "string") {
+      try {
+        toolInput = JSON.parse(toolInput as string);
+      } catch {
+        // leave as string
+      }
+    }
     return {
       agent: "gemini",
-      hook_type: asString(r["hookEventName"], "PermissionRequest"),
+      hook_type: asString(r["hookEventName"] ?? r["hook_type"] ?? r["hookType"], "PermissionRequest"),
       session_id: asString(r["session_id"] ?? r["sessionId"] ?? r["session"]),
-      tool_name: asString(r["tool_name"] ?? r["tool"]),
-      tool_input: r["tool_input"] ?? r["input"],
+      tool_name: toolName,
+      tool_input: toolInput,
       terminal_info: (r["terminal_info"] ?? {}) as Record<string, unknown>,
       cwd: asString(r["cwd"] ?? r["working_dir"] ?? r["cwd"]),
       transcript_path: asString(r["transcript_path"]),
       raw_payload: r,
     };
   },
+
   formatDecision(decision: string) {
     // Gemini CLI expects a JSON decision (e.g. { decision: "deny", reason: "..." }) and uses exit codes for severity.
     if (decision === "allow") return { decision: "allow" };
