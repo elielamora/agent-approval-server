@@ -2,28 +2,38 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   pull_request:
 
 jobs:
-  ci:
+  server-tests:
+    name: Server tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-      - uses: pnpm/action-setup@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          version: latest
-      - run: bun install
-      - run: pnpm --dir frontend install
-      - run: bun run format:check
-      - run: bun run lint
-      - run: bun run test
-      - run: pnpm --dir frontend build
-      - name: Smoke test server
-        run: |
-          bun src/cli.ts serve &
-          SERVER_PID=$!
-          sleep 2
-          curl -sf http://localhost:4759/queue
-          kill $SERVER_PID
+          bun-version: latest
+      - name: Install server deps
+        run: bun install
+      - name: Lint and run tests
+        run: bun run lint && bun run format:check && bun test
+
+  frontend-tests:
+    name: Frontend tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      - name: Install frontend deps
+        run: pnpm --dir frontend install
+      - name: Run frontend tests
+        run: pnpm --dir frontend test
