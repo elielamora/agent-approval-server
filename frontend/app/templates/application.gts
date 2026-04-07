@@ -1,5 +1,6 @@
 import Component from '@glimmer/component';
 import { service } from '@ember/service';
+import { tracked } from '@glimmer/tracking';
 import type Owner from '@ember/owner';
 import { on } from '@ember/modifier';
 import ApprovalQueue from '../components/approval-queue';
@@ -12,10 +13,12 @@ import type AppSettingsService from '../services/app-settings';
 export default class ApplicationTemplate extends Component {
   @service declare approvalQueue: ApprovalQueueService;
   @service declare appSettings: AppSettingsService;
+  @tracked adapters: string[] = [];
 
   constructor(owner: Owner, args: object) {
     super(owner, args);
     void this.approvalQueue.start();
+    void this.loadAdapters();
     const reportVisibility = () => {
       void fetch('/window-activity', {
         method: 'POST',
@@ -29,6 +32,21 @@ export default class ApplicationTemplate extends Component {
     document.addEventListener('visibilitychange', reportVisibility);
     reportVisibility();
   }
+
+  async loadAdapters() {
+    try {
+      const res = await fetch('/adapters');
+      if (res.ok) {
+        const body = await res.json();
+        this.adapters = body.adapters ?? [];
+      }
+    } catch {}
+  }
+
+  setAgentFilter = (e: Event) => {
+    const value = (e.target as HTMLSelectElement).value;
+    this.approvalQueue.agentFilter = value === '' ? null : value;
+  };
 
   get host() {
     return window.location.host;
@@ -67,6 +85,12 @@ export default class ApplicationTemplate extends Component {
         title="Settings"
         {{on "click" this.openSettings}}
       >⚙</button>
+      <select id="agent-filter" {{on "change" this.setAgentFilter}}>
+        <option value="">All agents</option>
+        {{#each this.adapters as |a|}}
+          <option value={{a}}>{{a}}</option>
+        {{/each}}
+      </select>
     </div>
 
     <div class="columns">

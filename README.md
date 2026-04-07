@@ -165,6 +165,7 @@ Note on multi-agent usage
 - The server includes a pluggable adapter layer (claude, copilot, gemini) so a single approval server can accept and normalize requests from multiple agents.
 - For agents that support hooks (Copilot, Gemini), configure their hooks to run the shim (see agent docs). Use `AGENT=<agent>` so the server knows which adapter to use.
 - For agents without configurable hooks, consider using a wrapper script that posts the same JSON payload to `http://localhost:4759/pending` (setting `agent=<name>` in the body or using `AGENT=`) and then proceeds based on the approval response.
+- UI: The web UI includes an agent dropdown in the top bar to filter the queue by agent, and each queue card has a "Raw" button to view the original hook payload for debugging and inspection.
 
 Testing locally with Copilot
 

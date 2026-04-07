@@ -20,6 +20,7 @@ export default class QueueCard extends Component<Sig> {
   @tracked isDeciding = false;
   @tracked explanation: string | null = null;
   @tracked isExplaining = false;
+  @tracked showRaw = false;
 
   get item() {
     return this.args.item;
@@ -131,6 +132,18 @@ export default class QueueCard extends Component<Sig> {
     await this.approvalQueue.dismissQueueItem(this.item.id);
   };
 
+  toggleRaw = () => {
+    this.showRaw = !this.showRaw;
+  };
+
+  get rawPayloadString() {
+    try {
+      return this.item.raw_payload ? JSON.stringify(this.item.raw_payload, null, 2) : JSON.stringify({ tool_input: this.item.tool_input ?? {} }, null, 2);
+    } catch {
+      return String(this.item.raw_payload ?? '');
+    }
+  }
+
   <template>
     <div class={{this.cardClass}} style={{this.cardStyle}}>
       <div class="card-header">
@@ -207,7 +220,18 @@ export default class QueueCard extends Component<Sig> {
         >
           Review on computer
         </button>
+        <button
+          type="button"
+          class="btn-raw"
+          {{on "click" this.toggleRaw}}
+        >
+          {{#if this.showRaw}}Hide raw{{else}}Raw{{/if}}
+        </button>
       </div>
+
+      {{#if this.showRaw}}
+        <pre class="raw-json">{{this.rawPayloadString}}</pre>
+      {{/if}}
     </div>
   </template>
 }

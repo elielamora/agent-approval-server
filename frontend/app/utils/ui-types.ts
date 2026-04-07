@@ -27,6 +27,7 @@ export interface QueueItem {
   agent?: string;
   snoozedToDesktop?: boolean;
   _old_content?: string;
+  raw_payload?: Record<string, unknown>;
 }
 
 export interface AskOption {
