@@ -12,12 +12,11 @@ import {
   stableStringify,
   buildExplainPrompt,
   buildFocusScript,
-  allowResponse,
-  denyResponse,
   logRemoval,
   readSessionName,
 } from "./utils";
 import { notifySwiftBar, recordWindowVisibility } from "./swiftbar";
+import { getAdapter, listAdapters } from "./adapters";
 
 function focusTerminal(entry: PendingEntry) {
   const script = buildFocusScript(entry.payload);
@@ -123,17 +122,25 @@ export function createRoutes(
 
     "/post-tool-use": {
       async POST(req: Request) {
-        // SAFETY: /post-tool-use body is an arbitrary JSON object from the Claude hook
-        const payload = (await req.json()) as Record<string, unknown>;
-        const sessionId = asString(payload.session_id);
-        const toolName = asString(payload.tool_name);
+        // SAFETY: /post-tool-use body is an arbitrary JSON object from agent hooks
+        const rawPayload = (await req.json()) as Record<string, unknown>;
+        const agentFromBody = typeof rawPayload.agent === "string" ? (rawPayload.agent as string) : undefined;
+        const adapter = getAdapter(agentFromBody, rawPayload);
+        const approval = adapter.normalize(rawPayload);
 
-        const toolInput = stableStringify(payload.tool_input);
+        const sessionId = asString(approval.session_id);
+        const toolName = asString(approval.tool_name);
+
+        const toolInput = stableStringify(approval.tool_input);
         for (const [id, entry] of pending) {
+          const ep = entry.payload as Record<string, unknown>;
+          const entryAgent = typeof ep.agent === "string" ? (ep.agent as string) : undefined;
           if (
-            entry.payload.session_id === sessionId &&
-            entry.payload.tool_name === toolName &&
-            stableStringify(entry.payload.tool_input) === toolInput
+            entryAgent && entryAgent !== approval.agent
+            ? false
+            : entry.payload.session_id === sessionId &&
+              entry.payload.tool_name === toolName &&
+              stableStringify(entry.payload.tool_input) === toolInput
           ) {
             logRemoval(id, "post-tool-use", entry);
             pending.delete(id);
@@ -190,6 +197,12 @@ export function createRoutes(
       },
     },
 
+    "/adapters": {
+      GET() {
+        return Response.json({ adapters: listAdapters() });
+      },
+    },
+
     "/window-activity": {
       async POST(req: Request) {
         // SAFETY: body is { visible: boolean } from the frontend visibilitychange listener
@@ -201,16 +214,20 @@ export function createRoutes(
 
     "/stop": {
       async POST(req: Request) {
-        // SAFETY: /stop body is a JSON object from the Claude PostToolUse hook
-        const payload = (await req.json()) as Record<string, unknown>;
-        const sessionId = asString(payload.session_id);
+        // SAFETY: /stop body is a JSON object from agent hooks
+        const rawPayload = (await req.json()) as Record<string, unknown>;
+        const agentFromBody = typeof rawPayload.agent === "string" ? (rawPayload.agent as string) : undefined;
+        const adapter = getAdapter(agentFromBody, rawPayload);
+        const approval = adapter.normalize(rawPayload);
+
+        const sessionId = asString(approval.session_id);
         const transcriptPath =
-          typeof payload.transcript_path === "string" ? payload.transcript_path : undefined;
+          typeof approval.transcript_path === "string" ? approval.transcript_path : undefined;
         const idleEntry: import("./types").IdleSession = {
           sessionId,
           idleSince: Date.now(),
           transcriptPath,
-          payload,
+          payload: approval.raw_payload ?? approval,
         };
         idleSessions.set(sessionId, idleEntry);
         notifySwiftBar(pending.size + idleSessions.size);
@@ -226,6 +243,9 @@ export function createRoutes(
         // Clear any pending entries for this session (e.g. last tool was CLI-denied)
         let removedAny = false;
         for (const [pendingId, entry] of pending) {
+          const ep = entry.payload as Record<string, unknown>;
+          const entryAgent = typeof ep.agent === "string" ? (ep.agent as string) : undefined;
+          if (entryAgent && entryAgent !== approval.agent) continue;
           if (entry.payload.session_id === sessionId) {
             logRemoval(pendingId, "session-idle", entry);
             pending.delete(pendingId);
@@ -237,6 +257,7 @@ export function createRoutes(
         return Response.json({ ok: true });
       },
     },
+
 
     "/idle": {
       GET() {
@@ -335,8 +356,13 @@ export function createRoutes(
 
     "/pending": {
       async POST(req: Request) {
-        // SAFETY: /pending body is an arbitrary JSON object from the Claude PermissionRequest hook
-        const payload = (await req.json()) as Record<string, unknown>;
+        // SAFETY: /pending body is an arbitrary JSON object from agent hooks
+        const rawPayload = (await req.json()) as Record<string, unknown>;
+
+        // Determine adapter (explicit agent field preferred, else autodetect)
+        const agentFromBody = typeof rawPayload.agent === "string" ? rawPayload.agent : undefined;
+        const adapter = getAdapter(agentFromBody, rawPayload);
+        const approval = adapter.normalize(rawPayload);
 
         const id = randomUUID();
         let resolveDecision!: (decision: string) => void;
@@ -344,19 +370,17 @@ export function createRoutes(
           resolveDecision = resolve;
         });
 
-        // Auto-resolve any lingering entries for this session.
-        // AskUserQuestion cards are informational — they don't block Claude, so we resolve them
-        // with "allow" (a no-op) so the hook doesn't error. Any other pending tool for the same
-        // session means Claude moved on without waiting for approval (CLI-denied or timed out),
-        // so we resolve with "deny" to unblock the stream and clean up.
-        const incomingSession =
-          typeof payload.session_id === "string" ? payload.session_id : undefined;
+        // Auto-resolve any lingering entries for this session (match by session_id and agent)
+        const incomingSession = typeof approval.session_id === "string" ? approval.session_id : undefined;
         if (incomingSession) {
           idleSessions.delete(incomingSession);
           const now = Date.now();
           for (const [pendingId, entry] of pending) {
-            if (entry.payload.session_id === incomingSession) {
-              const isAskQuestion = entry.payload.tool_name === "AskUserQuestion";
+            const entryPayload = entry.payload as Record<string, unknown> | undefined;
+            const entrySession = entryPayload ? (entryPayload.session_id as string | undefined) : undefined;
+            const entryAgent = entryPayload ? (entryPayload.agent as string | undefined) : undefined;
+            if (entrySession === incomingSession && (!entryAgent || entryAgent === approval.agent)) {
+              const isAskQuestion = entryPayload?.tool_name === "AskUserQuestion";
               // If the entry arrived recently, treat it as a parallel tool call and leave it pending.
               if (!isAskQuestion && now - entry.enqueuedAt < PARALLEL_WINDOW_MS) continue;
               logRemoval(pendingId, isAskQuestion ? "new-session-activity" : "cli-denied", entry);
@@ -369,14 +393,14 @@ export function createRoutes(
         // For Write tool: if the target file already exists, read its current content
         // so the frontend can show a real diff instead of just syntax-highlighted code.
         if (
-          payload.tool_name === "Write" &&
-          typeof (payload.tool_input as Record<string, unknown> | undefined)?.file_path === "string"
+          approval.tool_name === "Write" &&
+          typeof (approval.tool_input as Record<string, unknown> | undefined)?.file_path === "string"
         ) {
-          const fp = (payload.tool_input as Record<string, string>).file_path;
+          const fp = (approval.tool_input as Record<string, string>).file_path;
           const file = Bun.file(fp);
           if (await file.exists()) {
             try {
-              (payload as Record<string, unknown>)._old_content = await file.text();
+              (approval as Record<string, unknown>)._old_content = await file.text();
             } catch {
               // If we can't read (permissions, binary, etc.), skip — frontend falls back to all-additions.
             }
@@ -385,27 +409,27 @@ export function createRoutes(
 
         const entry: import("./types").PendingEntry = {
           resolve: resolveDecision,
-          payload,
+          payload: approval,
           enqueuedAt: Date.now(),
         };
         pending.set(id, entry);
         notifySwiftBar(pending.size + idleSessions.size);
         const transcriptPath =
-          typeof payload.transcript_path === "string" ? payload.transcript_path : undefined;
+          typeof approval.transcript_path === "string" ? approval.transcript_path : undefined;
         if (transcriptPath) {
           void readSessionName(transcriptPath).then((name) => {
             if (name) entry.sessionName = name;
           });
         }
-        const toolName = asString(payload.tool_name, "unknown");
+        const toolName = asString(approval.tool_name, "unknown");
         log.push({
           id,
           timestamp: Date.now(),
           tool_name: toolName,
-          tool_input: payload.tool_input,
+          tool_input: approval.tool_input,
         });
         if (log.length > LOG_MAX) log.splice(0, log.length - LOG_MAX);
-        const summary = JSON.stringify(payload.tool_input ?? "");
+        const summary = JSON.stringify(approval.tool_input ?? "");
         console.log(`[enqueue] ${toolName} | ${summary.slice(0, 120)} | id=${id}`);
 
         setTimeout(() => {
@@ -427,21 +451,16 @@ export function createRoutes(
               if (clientGone) return;
               try {
                 if (decision === "dismiss") {
-                  // Close without writing a body so the hook shim gets an empty response,
-                  // causing curl to exit non-zero and Claude Code to fall through to its
-                  // default CLI permission prompts.
+                  // Close without writing a body so the hook shim gets an empty response.
                   controller.close();
                 } else {
-                  controller.enqueue(
-                    encoder.encode(
-                      JSON.stringify(
-                        decision === "allow"
-                          ? allowResponse()
-                          : denyResponse(decision !== "deny" ? decision : undefined),
-                      ),
-                    ),
-                  );
-                  controller.close();
+                  const body = adapter.formatDecision(decision);
+                  if (body == null) {
+                    controller.close();
+                  } else {
+                    controller.enqueue(encoder.encode(JSON.stringify(body)));
+                    controller.close();
+                  }
                 }
               } catch {}
             });
@@ -453,7 +472,7 @@ export function createRoutes(
               logRemoval(id, "stream-cancel", entry);
               pending.delete(id);
               notifySwiftBar(pending.size + idleSessions.size);
-              resolveDecision("deny");
+              entry.resolve("deny");
             }
           },
         });

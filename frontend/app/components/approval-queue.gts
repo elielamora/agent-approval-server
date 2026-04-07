@@ -30,11 +30,11 @@ export default class ApprovalQueue extends Component {
   cardTransition = cardTransition;
 
   get normalItems() {
-    return this.approvalQueue.items.filter((i) => !i.snoozedToDesktop);
+    return this.approvalQueue.filteredItems.filter((i) => !i.snoozedToDesktop);
   }
 
   get snoozedItems() {
-    return this.approvalQueue.items.filter((i) => i.snoozedToDesktop);
+    return this.approvalQueue.filteredItems.filter((i) => i.snoozedToDesktop);
   }
 
   get hasNormalItems() {

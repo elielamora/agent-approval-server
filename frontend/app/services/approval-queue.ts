@@ -11,6 +11,13 @@ export default class ApprovalQueueService extends Service {
   @tracked idleSessions: IdleSession[] = [];
   @tracked planItem: QueueItem | null = null;
   @tracked isOffline = false;
+  // Optional agent filter (e.g. 'claude', 'copilot', 'gemini') - null means no filter
+  @tracked agentFilter: string | null = null;
+
+  get filteredItems(): QueueItem[] {
+    if (!this.agentFilter) return this.items;
+    return this.items.filter((i) => i.agent === this.agentFilter);
+  }
 
   get autoDenyMs() {
     return this.appSettings.autoDenyMs;

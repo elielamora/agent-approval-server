@@ -136,6 +136,9 @@ export default class QueueCard extends Component<Sig> {
       <div class="card-header">
         <div class="card-header-top">
           <span class={{this.badgeClass}}>{{this.toolLabel}}</span>
+          {{#if @item.agent}}
+            <span class="agent">{{@item.agent}}</span>
+          {{/if}}
           <span class="session">{{this.sessionLabel}}</span>
           <button
             type="button"

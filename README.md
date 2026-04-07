@@ -118,7 +118,19 @@ See [CONTRIBUTING.md](CONTRIBUTING.md#dev-setup) for dev setup and port configur
 
 ## Hook configuration (reference)
 
-`claude-approval-server install-hooks` adds the following entries to `~/.claude/settings.json`:
+`claude-approval-server install-hooks [agent]` installs the local hook shim and, when possible, configures the agent to call it. For Claude the command will merge entries into `~/.claude/settings.json`. For other agents the shim is installed and manual configuration instructions are printed.
+
+The shim accepts an AGENT environment variable (defaults to `claude`) so the same script can be reused for other agents. Example shim invocation installed to `~/.claude/claude-approval-server/hook-shim.sh`:
+
+```sh
+# Default (Claude)
+~/.claude/claude-approval-server/hook-shim.sh pending
+
+# Or explicitly for Copilot
+AGENT=copilot ~/.claude/claude-approval-server/hook-shim.sh pending
+```
+
+`claude-approval-server install-hooks` adds the following entries to `~/.claude/settings.json` for Claude:
 
 ```json
 "hooks": {
@@ -148,11 +160,17 @@ See [CONTRIBUTING.md](CONTRIBUTING.md#dev-setup) for dev setup and port configur
 }
 ```
 
-`PermissionRequest` — if the server is unreachable or times out, Claude falls back to its normal CLI approval prompt.
+Note on multi-agent usage
 
-`PostToolUse` — fires after each tool runs. If you approved a request from the CLI prompt (bypassing the web UI), this clears the stale pending item from the queue automatically.
+- The server includes a pluggable adapter layer (claude, copilot, gemini) so a single approval server can accept and normalize requests from multiple agents.
+- For agents that support hooks (Copilot, Gemini), configure their hooks to run the shim (see agent docs). Use `AGENT=<agent>` so the server knows which adapter to use.
+- For agents without configurable hooks, consider using a wrapper script that posts the same JSON payload to `http://localhost:4759/pending` (setting `agent=<name>` in the body or using `AGENT=`) and then proceeds based on the approval response.
 
-`Stop` — fires when a Claude session ends. The server records it in the Idle Sessions column until dismissed or until the 24-hour TTL expires.
+`PermissionRequest` — if the server is unreachable or times out, the agent should fall back to its normal CLI approval prompt (behavior depends on the agent).
+
+`PostToolUse` — fires after each tool runs. If you approved a request from the CLI prompt (bypassing the web UI), this clears the stale pending item from the queue automatically (Claude behavior).
+
+`Stop` — fires when a session ends. The server records it in the Idle Sessions column until dismissed or until the 24-hour TTL expires.
 
 ## Contributing
 

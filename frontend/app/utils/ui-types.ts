@@ -24,6 +24,7 @@ export interface QueueItem {
   cwd?: string;
   terminal_info?: TerminalInfo;
   sessionName?: string;
+  agent?: string;
   snoozedToDesktop?: boolean;
   _old_content?: string;
 }

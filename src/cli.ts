@@ -152,7 +152,7 @@ async function removeClaudeHooks(settingsPath = CLAUDE_SETTINGS): Promise<void> 
 // CLI commands
 // ---------------------------------------------------------------------------
 
-async function runInstallHooks(): Promise<void> {
+async function runInstallHooks(agent = "claude"): Promise<void> {
   const shimFile = Bun.file(shimAsset);
 
   await Bun.$`mkdir -p ${SHIM_DIR}`;
@@ -160,10 +160,17 @@ async function runInstallHooks(): Promise<void> {
   await Bun.$`chmod +x ${SHIM_DEST}`;
   console.log(`✓ Hook shim installed to ${SHIM_DEST}`);
 
-  await mergeClaudeHooks(SHIM_DEST);
-  console.log(`✓ Claude hooks merged into ${CLAUDE_SETTINGS}`);
+  if (agent === "claude") {
+    await mergeClaudeHooks(SHIM_DEST);
+    console.log(`✓ Claude hooks merged into ${CLAUDE_SETTINGS}`);
 
-  console.log("\nRestart Claude Code for hook changes to take effect.");
+    console.log("\nRestart Claude Code for hook changes to take effect.");
+  } else {
+    console.log(`\nNote: '${agent}' adapter shim installed but automatic configuration is not supported.`);
+    console.log(`To configure ${agent}, point its hook/command to run the shim with AGENT=${agent}, e.g.:`);
+    console.log(`  AGENT=${agent} ${SHIM_DEST} pending`);
+    console.log("Refer to the README for per-agent instructions.");
+  }
 }
 
 async function runUninstall(): Promise<void> {
@@ -255,13 +262,13 @@ Commands:
 // ---------------------------------------------------------------------------
 
 if (import.meta.main) {
-  const [, , cmd] = process.argv;
+  const [, , cmd, maybeAgent] = process.argv;
   switch (cmd) {
     case "serve":
       await runServe();
       break;
     case "install-hooks":
-      await runInstallHooks();
+      await runInstallHooks(maybeAgent ?? "claude");
       break;
     case "uninstall":
       await runUninstall();
