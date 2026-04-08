@@ -1,6 +1,7 @@
 import Component from '@glimmer/component';
 import { tracked } from '@glimmer/tracking';
 import { service } from '@ember/service';
+import type Owner from '@ember/owner';
 import { on } from '@ember/modifier';
 import CodeBlock from './code-block';
 import CountdownTimer from './countdown-timer';
@@ -21,6 +22,25 @@ export default class QueueCard extends Component<Sig> {
   @tracked explanation: string | null = null;
   @tracked isExplaining = false;
   @tracked showRaw = false;
+
+  constructor(owner: Owner, args: object) {
+    super(owner, args);
+    try {
+      // default raw view toggled by developer setting
+      this.showRaw = !!this.approvalQueue?.appSettings?.showRawByDefault;
+    } catch {
+      // ignore if services not ready
+    }
+  }
+
+  get agentInitial() {
+    const agent = String(this.item.agent ?? '').toLowerCase();
+    if (!agent) return '';
+    if (agent === 'copilot') return 'CP';
+    if (agent === 'claude') return 'C';
+    if (agent === 'gemini') return 'G';
+    return agent.slice(0, 2).toUpperCase();
+  }
 
   get item() {
     return this.args.item;
@@ -150,7 +170,10 @@ export default class QueueCard extends Component<Sig> {
         <div class="card-header-top">
           <span class={{this.badgeClass}}>{{this.toolLabel}}</span>
           {{#if @item.agent}}
-            <span class="agent">{{@item.agent}}</span>
+            <span class="agent-badge" data-agent={{@item.agent}} title={{@item.agent}}>
+              <span class="agent-initial">{{this.agentInitial}}</span>
+              <span class="agent-name">{{@item.agent}}</span>
+            </span>
           {{/if}}
           <span class="session">{{this.sessionLabel}}</span>
           <button

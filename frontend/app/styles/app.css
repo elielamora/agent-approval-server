@@ -97,6 +97,43 @@ h1 .dot {
   border-color: var(--text-dim);
 }
 
+#agent-filter {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.9rem;
+}
+
+.agent-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.12rem 0.45rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.agent-initial {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: #fff;
+  font-size: 0.75rem;
+}
+
+.agent-badge[data-agent='claude'] .agent-initial { background: #7c3aed; }
+.agent-badge[data-agent='copilot'] .agent-initial { background: #0ea5e9; }
+.agent-badge[data-agent='gemini'] .agent-initial { background: #34d399; }
+
 .columns {
   display: flex;
   flex-direction: column;

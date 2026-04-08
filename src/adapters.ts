@@ -1,4 +1,4 @@
-import { asString, allowResponse, denyResponse } from "./utils";
+import { asString, allowResponse, denyResponse, buildExplainPrompt } from "./utils";
 
 export interface ApprovalRequest {
   agent: string; // e.g. "claude", "copilot", "gemini"
@@ -19,6 +19,7 @@ export interface Adapter {
   detect?: (raw: Record<string, unknown>) => boolean;
   normalize: (raw: Record<string, unknown>) => ApprovalRequest;
   formatDecision: (decision: string) => unknown | null; // return null to send empty response
+  explain?: (payload: Record<string, unknown>) => Promise<string | null>;
   installHooks?: (shimPath: string) => Promise<void>;
   uninstallHooks?: () => Promise<void>;
 }
@@ -63,6 +64,30 @@ const claudeAdapter: Adapter = {
       raw_payload: r,
     };
   },
+  explain: async (payload: Record<string, unknown>) => {
+    try {
+      const prompt = buildExplainPrompt(payload);
+      const proc = Bun.spawn(["claude", "-p", prompt, "--model", "haiku", "--effort", "low"], {
+        stdout: "pipe",
+        stderr: "pipe",
+        env: { ...process.env, APPROVAL_SERVER_EXPLAIN: "1" },
+      });
+      const timeout = setTimeout(() => proc.kill(), 30_000);
+      const [text, err] = await Promise.all([
+        new Response(proc.stdout).text(),
+        new Response(proc.stderr).text(),
+      ]);
+      clearTimeout(timeout);
+      if (!text.trim() && err.trim()) {
+        console.error("[explain][claude]", err.trim());
+        return null;
+      }
+      return text.trim();
+    } catch (e) {
+      console.error("[explain][claude] error", e);
+      return null;
+    }
+  },
   formatDecision(decision: string) {
     if (decision === "allow") return allowResponse();
     if (decision === "dismiss") return null;
@@ -101,6 +126,31 @@ const copilotAdapter: Adapter = {
       transcript_path: asString(r["transcript_path"]),
       raw_payload: r,
     };
+  },
+
+  explain: async (payload: Record<string, unknown>) => {
+    try {
+      const prompt = buildExplainPrompt(payload);
+      const proc = Bun.spawn(["copilot", "-p", prompt], {
+        stdout: "pipe",
+        stderr: "pipe",
+        env: { ...process.env, APPROVAL_SERVER_EXPLAIN: "1" },
+      });
+      const timeout = setTimeout(() => proc.kill(), 30_000);
+      const [text, err] = await Promise.all([
+        new Response(proc.stdout).text(),
+        new Response(proc.stderr).text(),
+      ]);
+      clearTimeout(timeout);
+      if (!text.trim() && err.trim()) {
+        console.error("[explain][copilot]", err.trim());
+        return null;
+      }
+      return text.trim();
+    } catch (e) {
+      console.error("[explain][copilot] error", e);
+      return null;
+    }
   },
 
   formatDecision(decision: string) {

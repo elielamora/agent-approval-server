@@ -49,6 +49,7 @@ export function createRoutes(
         if (typeof body.notifEnabled === "boolean") settings.notifEnabled = body.notifEnabled;
         if (typeof body.notifRequireInteraction === "boolean")
           settings.notifRequireInteraction = body.notifRequireInteraction;
+        if (typeof body.showRawByDefault === "boolean") settings.showRawByDefault = body.showRawByDefault;
         await saveSettings();
         return Response.json(settings);
       },
@@ -164,23 +165,13 @@ export function createRoutes(
 
         entry.explaining = true;
         try {
-          const prompt = buildExplainPrompt(entry.payload);
-          const proc = Bun.spawn(["claude", "-p", prompt, "--model", "haiku", "--effort", "low"], {
-            stdout: "pipe",
-            stderr: "pipe",
-            env: { ...process.env, APPROVAL_SERVER_EXPLAIN: "1" },
-          });
-          const timeout = setTimeout(() => proc.kill(), 30_000);
-          const [text, err] = await Promise.all([
-            new Response(proc.stdout).text(),
-            new Response(proc.stderr).text(),
-          ]);
-          clearTimeout(timeout);
-          if (!text.trim() && err.trim()) {
-            console.error("[explain]", err.trim());
-            return Response.json({ error: err.trim() }, { status: 500 });
+          const adapter = getAdapter((entry.payload as Record<string, unknown>)?.agent as string, (entry.payload as Record<string, unknown>)?.raw_payload as Record<string, unknown> | undefined);
+          if (!adapter.explain) {
+            return Response.json({ error: "Explain not supported for this agent" }, { status: 501 });
           }
-          entry.explanation = text.trim();
+          const text = await adapter.explain(entry.payload as Record<string, unknown>);
+          if (!text) return Response.json({ error: "No explanation available" }, { status: 500 });
+          entry.explanation = text;
           return Response.json({ explanation: entry.explanation });
         } catch (e) {
           console.error("[explain]", e);

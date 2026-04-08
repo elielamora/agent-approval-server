@@ -11,6 +11,7 @@ export default class SettingsModal extends Component {
   @tracked private _localTheme: 'dark' | 'light' | undefined;
   @tracked private _localNotifEnabled: boolean | undefined;
   @tracked private _localRequireInteraction: boolean | undefined;
+  @tracked private _localShowRaw: boolean | undefined;
 
   get isOpen() {
     return this.appSettings.isOpen;
@@ -30,10 +31,15 @@ export default class SettingsModal extends Component {
     );
   }
 
+  get localShowRaw() {
+    return this._localShowRaw ?? this.appSettings.showRawByDefault;
+  }
+
   close = () => {
     this._localTheme = undefined;
     this._localNotifEnabled = undefined;
     this._localRequireInteraction = undefined;
+    this._localShowRaw = undefined;
     this.appSettings.close();
   };
 
@@ -54,11 +60,16 @@ export default class SettingsModal extends Component {
     this._localRequireInteraction = (e.target as HTMLInputElement).checked;
   };
 
+  setShowRaw = (e: Event) => {
+    this._localShowRaw = (e.target as HTMLInputElement).checked;
+  };
+
   save = async () => {
     await this.appSettings.save({
       theme: this.localTheme,
       notifEnabled: this.localNotifEnabled,
       notifRequireInteraction: this.localRequireInteraction,
+      showRawByDefault: this.localShowRaw,
     });
   };
 

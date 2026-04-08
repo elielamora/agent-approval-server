@@ -5,12 +5,14 @@ export interface Settings {
   theme: "dark" | "light";
   notifEnabled: boolean;
   notifRequireInteraction: boolean;
+  showRawByDefault: boolean;
 }
 
 const DEFAULTS: Settings = {
   theme: "dark",
   notifEnabled: true,
   notifRequireInteraction: true,
+  showRawByDefault: false,
 };
 const SETTINGS_FILE = join(homedir(), ".claude", "claude-approval-server", "settings.json");
 

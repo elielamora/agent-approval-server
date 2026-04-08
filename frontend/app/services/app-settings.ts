@@ -6,6 +6,7 @@ export default class AppSettingsService extends Service {
   @tracked notifEnabled = true;
   @tracked notifRequireInteraction = true;
   @tracked autoDenyMs = 600000;
+  @tracked showRawByDefault = false;
   @tracked isOpen = false;
 
   async load() {
@@ -15,11 +16,13 @@ export default class AppSettingsService extends Service {
         notifEnabled?: boolean;
         notifRequireInteraction?: boolean;
         autoDenyMs?: number;
+        showRawByDefault?: boolean;
       };
       this.theme = cfg.theme === 'light' ? 'light' : 'dark';
       this.notifEnabled = cfg.notifEnabled ?? true;
       this.notifRequireInteraction = cfg.notifRequireInteraction ?? true;
       this.autoDenyMs = cfg.autoDenyMs ?? 600000;
+      this.showRawByDefault = cfg.showRawByDefault ?? false;
       document.documentElement.setAttribute('data-theme', this.theme);
     } catch {
       // ignore, use defaults
@@ -30,6 +33,7 @@ export default class AppSettingsService extends Service {
     theme?: 'dark' | 'light';
     notifEnabled?: boolean;
     notifRequireInteraction?: boolean;
+    showRawByDefault?: boolean;
   }) {
     if (patch.theme) {
       this.theme = patch.theme;
@@ -39,6 +43,7 @@ export default class AppSettingsService extends Service {
       this.notifEnabled = patch.notifEnabled;
     if (patch.notifRequireInteraction !== undefined)
       this.notifRequireInteraction = patch.notifRequireInteraction;
+    if (patch.showRawByDefault !== undefined) this.showRawByDefault = patch.showRawByDefault;
     try {
       const res = await fetch('/config', {
         method: 'PATCH',
