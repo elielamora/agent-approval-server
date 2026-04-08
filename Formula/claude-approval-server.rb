@@ -1,16 +1,16 @@
 class ClaudeApprovalServer < Formula
   desc "Approval server for Claude Code hooks"
   homepage "https://github.com/wagenet/claude-approval-server"
-  version "1.3.0"
+  version "1.4.0"
 
   on_arm do
-    url "https://github.com/wagenet/claude-approval-server/releases/download/v1.3.0/claude-approval-server-macos-arm64"
-    sha256 "1b34b0edd74b242d22923c7ce3ee231a3c3664d99f28c244c16e0cb0729d0e83"
+    url "https://github.com/wagenet/claude-approval-server/releases/download/v1.4.0/claude-approval-server-macos-arm64"
+    sha256 "4ac991196da346a39b4a731dd7d9c1772df04b68fc46f9018a7a578cb92c73c8"
   end
 
   on_intel do
-    url "https://github.com/wagenet/claude-approval-server/releases/download/v1.3.0/claude-approval-server-macos-x86_64"
-    sha256 "d48b12d38babbfef16e46a06aa45f562ae84413383ad5f86c70caf53d3f74564"
+    url "https://github.com/wagenet/claude-approval-server/releases/download/v1.4.0/claude-approval-server-macos-x86_64"
+    sha256 "d3f09f2b8c03ab44cc062b17c5687bfa4931beacaf82f6ec93697e6e58ba0ddd"
   end
 
   def install
