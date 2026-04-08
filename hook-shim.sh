@@ -22,6 +22,11 @@ TERMINAL_INFO=$(jq -n \
 AGENT="${AGENT:-claude}"
 ENRICHED=$(echo "$PAYLOAD" | jq --argjson ti "$TERMINAL_INFO" --arg cwd "${PWD:-}" --arg agent "$AGENT" '. + {terminal_info: $ti, agent: $agent} | if (.cwd == null or .cwd == "") then . + {cwd: $cwd} else . end')
 
+# Write sentinel for debugging hook invocations
+timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+echo "$timestamp $ENDPOINT $AGENT $PWD" >> "/tmp/hook-invoked-${AGENT}.log"
+printf '%s\n' "$ENRICHED" >> "/tmp/hook-invoked-${AGENT}.log"
+
 curl -sS --max-time 610 \
   -X POST -H 'Content-Type: application/json' \
   -d "$ENRICHED" \

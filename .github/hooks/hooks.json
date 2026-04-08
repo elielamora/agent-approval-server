@@ -4,7 +4,7 @@
     "preToolUse": [
       {
         "type": "command",
-        "bash": "./scripts/agent-shim.sh copilot pending",
+        "bash": "AGENT=copilot /Users/eliel/.claude/claude-approval-server/hook-shim.sh pending",
         "cwd": ".",
         "timeoutSec": 610
       }
@@ -12,7 +12,7 @@
     "postToolUse": [
       {
         "type": "command",
-        "bash": "./scripts/agent-shim.sh copilot post-tool-use",
+        "bash": "AGENT=copilot /Users/eliel/.claude/claude-approval-server/hook-shim.sh post-tool-use",
         "cwd": ".",
         "timeoutSec": 5
       }
@@ -20,7 +20,7 @@
     "sessionEnd": [
       {
         "type": "command",
-        "bash": "./scripts/agent-shim.sh copilot stop",
+        "bash": "AGENT=copilot /Users/eliel/.claude/claude-approval-server/hook-shim.sh stop",
         "cwd": "."
       }
     ]
