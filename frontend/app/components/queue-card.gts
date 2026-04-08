@@ -158,7 +158,11 @@ export default class QueueCard extends Component<Sig> {
 
   get rawPayloadString() {
     try {
-      return this.item.raw_payload ? JSON.stringify(this.item.raw_payload, null, 2) : JSON.stringify({ tool_input: this.item.tool_input ?? {} }, null, 2);
+      const raw = this.item.raw_payload ? { ...(this.item.raw_payload as Record<string, unknown>) } : { tool_input: this.item.tool_input ?? {} };
+      // Filter out noisy debug fields that are not useful to surface by default
+      delete (raw as Record<string, unknown>).report_intent;
+      delete (raw as Record<string, unknown>).reportIntent;
+      return JSON.stringify(raw, null, 2);
     } catch {
       return String(this.item.raw_payload ?? '');
     }
