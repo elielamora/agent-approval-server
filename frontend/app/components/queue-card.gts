@@ -8,6 +8,7 @@ import CountdownTimer from './countdown-timer';
 import TerminalIcon from './terminal-icon';
 import { htmlSafe } from '@ember/template';
 import { formatToolName, badgeClass, shortCwd } from '../utils/ui-utils';
+import { getAgentLogoDataUri } from '../utils/agent-logos';
 import type { QueueItem } from '../utils/ui-types';
 import type ApprovalQueueService from '../services/approval-queue';
 
@@ -40,6 +41,18 @@ export default class QueueCard extends Component<Sig> {
     if (agent === 'claude') return 'C';
     if (agent === 'gemini') return 'G';
     return agent.slice(0, 2).toUpperCase();
+  }
+
+  get agentLogo() {
+    try {
+      return getAgentLogoDataUri(String(this.item.agent ?? ''));
+    } catch {
+      return '';
+    }
+  }
+
+  get showExplain() {
+    return this.approvalQueue.adapterSupportsExplain(String(this.item.agent ?? '') );
   }
 
   get item() {
@@ -175,6 +188,7 @@ export default class QueueCard extends Component<Sig> {
           <span class={{this.badgeClass}}>{{this.toolLabel}}</span>
           {{#if @item.agent}}
             <span class="agent-badge" data-agent={{@item.agent}} title={{@item.agent}}>
+              <img class="agent-logo" src={{this.agentLogo}} alt={{@item.agent}} />
               <span class="agent-initial">{{this.agentInitial}}</span>
               <span class="agent-name">{{@item.agent}}</span>
             </span>
@@ -221,16 +235,18 @@ export default class QueueCard extends Component<Sig> {
         >
           Deny
         </button>
-        {{#unless this.explanation}}
-          <button
-            type="button"
-            class="btn-explain"
-            disabled={{this.isExplaining}}
-            {{on "click" this.explain}}
-          >
-            {{#if this.isExplaining}}Explaining…{{else}}Explain{{/if}}
-          </button>
-        {{/unless}}
+        {{#if this.showExplain}}
+          {{#unless this.explanation}}
+            <button
+              type="button"
+              class="btn-explain"
+              disabled={{this.isExplaining}}
+              {{on "click" this.explain}}
+            >
+              {{#if this.isExplaining}}Explaining…{{else}}Explain{{/if}}
+            </button>
+          {{/unless}}
+        {{/if}}
         {{#if this.hasFocusTarget}}
           <button
             type="button"

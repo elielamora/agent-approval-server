@@ -16,6 +16,7 @@ export default class ApprovalQueueService extends Service {
   // Optional agent filter (e.g. 'claude', 'copilot', 'gemini') - null means no filter
   @tracked agentFilter: string | null = null;
 
+  @tracked adapterInfo: Array<{ id: string; explain?: boolean }> = [];
   get filteredItems(): QueueItem[] {
     if (!this.agentFilter) return this.items;
     return this.items.filter((i) => i.agent === this.agentFilter);
@@ -40,6 +41,16 @@ export default class ApprovalQueueService extends Service {
       this.#colorIndex++;
     }
     return this.#sessionColors.get(sessionId)!;
+  }
+
+  setAdapters(info: Array<{ id: string; explain?: boolean }>) {
+    this.adapterInfo = info ?? [];
+  }
+
+  adapterSupportsExplain(agent: string | null | undefined): boolean {
+    if (!agent) return false;
+    const entry = this.adapterInfo.find((a) => a.id === agent);
+    return !!entry && !!entry.explain;
   }
 
   async start() {

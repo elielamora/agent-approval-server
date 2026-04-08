@@ -40,7 +40,8 @@ export default class ApplicationTemplate extends Component {
       const res = await fetch('/adapters');
       if (res.ok) {
         const body = await res.json();
-        this.adapters = body.adapters ?? [];
+        // body.adapters is an array of { id, explain }
+        this.approvalQueue.setAdapters(body.adapters ?? []);
       }
     } catch {}
   }
@@ -89,8 +90,8 @@ export default class ApplicationTemplate extends Component {
       >⚙</button>
       <select id="agent-filter" {{on "change" this.setAgentFilter}}>
         <option value="">All agents</option>
-        {{#each this.adapters as |a|}}
-          <option value={{a}}>{{a}}</option>
+        {{#each this.approvalQueue.adapterInfo as |a|}}
+          <option value={{a.id}}>{{a.id}}</option>
         {{/each}}
       </select>
     </div>

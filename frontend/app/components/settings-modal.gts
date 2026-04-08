@@ -122,6 +122,14 @@ export default class SettingsModal extends Component {
               />
               Require interaction (keep notifications visible)
             </label>
+            <label class="settings-label-inline">
+              <input
+                type="checkbox"
+                checked={{this.localShowRaw}}
+                {{on "change" this.setShowRaw}}
+              />
+              Show raw payload by default (developer)
+            </label>
           </div>
           <div id="settings-footer">
             <a

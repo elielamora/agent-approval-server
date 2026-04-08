@@ -130,6 +130,14 @@ h1 .dot {
   font-size: 0.75rem;
 }
 
+.agent-logo {
+  width: 18px;
+  height: 18px;
+  display: inline-block;
+  flex-shrink: 0;
+  border-radius: 4px;
+}
+
 .agent-badge[data-agent='claude'] .agent-initial { background: #7c3aed; }
 .agent-badge[data-agent='copilot'] .agent-initial { background: #0ea5e9; }
 .agent-badge[data-agent='gemini'] .agent-initial { background: #34d399; }
